@@ -518,6 +518,8 @@ func main() {
 	// 聊天相关API
 	http.HandleFunc("/api/chat/history", handleChatHistoryAPI)
 	http.HandleFunc("/api/chat/upload", handleFileUploadAPI)
+	http.HandleFunc("/api/chat/upload-images", handleBatchImageUploadAPI)
+	http.HandleFunc("/api/chat/revoke", handleChatRevokeAPI)
 	http.HandleFunc("/api/download/", handleFileDownloadAPI)
 
 	// 提供获取音质配置的 API
