@@ -1,0 +1,267 @@
+export type AudioRuntimeConfig = {
+  mode: string
+  quality: string
+  sampleRate: number
+  bufferSize: number
+  protocol: string
+}
+
+export type CaptureWorkletMessage = {
+  type: 'capture'
+  samples: Float32Array
+}
+
+export class AudioEngine {
+  public context: AudioContext | null = null
+  public outputGainNode: GainNode | null = null
+  public captureMonitorGainNode: GainNode | null = null
+  public captureWorkletNode: AudioWorkletNode | null = null
+  public playbackWorkletNode: AudioWorkletNode | null = null
+  public audioInput: MediaStreamAudioSourceNode | null = null
+  public mediaStream: MediaStream | null = null
+  public remoteAudioElements: Record<string, HTMLAudioElement> = {}
+  
+  private audioWorkletsReadyPromise: Promise<void> | null = null
+  private isMuted: boolean = false
+  public logMsg: (msg: string) => void
+
+  constructor(logMsg: (msg: string) => void) {
+    this.logMsg = logMsg
+  }
+
+  setMuted(muted: boolean) {
+    this.isMuted = muted
+    if (this.outputGainNode) {
+      this.outputGainNode.gain.value = muted ? 0 : 1
+    }
+    Object.values(this.remoteAudioElements).forEach(audioEl => {
+      audioEl.muted = muted
+    })
+  }
+
+  getMuted(): boolean {
+    return this.isMuted
+  }
+
+  ensureOutputGainReady() {
+    if (!this.context) return null
+    if (!this.outputGainNode) {
+      this.outputGainNode = this.context.createGain()
+      this.outputGainNode.connect(this.context.destination)
+    }
+    this.outputGainNode.gain.value = this.isMuted ? 0 : 1
+    return this.outputGainNode
+  }
+
+  async syncRemoteAudioElement(audioEl: HTMLAudioElement, onBlocked?: () => void) {
+    audioEl.muted = this.isMuted
+    try {
+      await audioEl.play()
+    } catch (e) {
+      if (onBlocked) onBlocked()
+    }
+  }
+
+  async syncAllRemoteAudioPlayback(onBlocked?: () => void) {
+    await Promise.allSettled(
+      Object.values(this.remoteAudioElements).map(audioEl => this.syncRemoteAudioElement(audioEl, onBlocked))
+    )
+  }
+
+  async ensureAudioContextReady(
+    config: AudioRuntimeConfig,
+    onReady: () => void,
+    onBlocked: () => void
+  ): Promise<boolean> {
+    if (!this.context || this.context.state === 'closed') {
+      const contextOptions: AudioContextOptions = {}
+      if (config.sampleRate && config.sampleRate > 0) {
+        contextOptions.sampleRate = config.sampleRate
+      }
+      this.context = new (window.AudioContext || (window as any).webkitAudioContext)(contextOptions)
+      console.log('AudioContext initialized with sample rate:', this.context.sampleRate)
+      this.outputGainNode = null
+      this.captureMonitorGainNode = null
+      this.captureWorkletNode = null
+      this.playbackWorkletNode = null
+      this.audioWorkletsReadyPromise = null
+      this.ensureOutputGainReady()
+    }
+
+    if (this.context.state === 'suspended') {
+      try {
+        await this.context.resume()
+      } catch (e) {
+        onBlocked()
+      }
+    }
+
+    this.ensureOutputGainReady()
+
+    if (this.context.state === 'running') {
+      onReady()
+      
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = null
+        navigator.mediaSession.playbackState = 'none'
+        const actionHandlers = ['play', 'pause', 'seekbackward', 'seekforward', 'previoustrack', 'nexttrack', 'stop']
+        actionHandlers.forEach(action => {
+          try {
+            navigator.mediaSession.setActionHandler(action as MediaSessionAction, null)
+          } catch (e) {}
+        })
+      }
+      
+      return true
+    }
+
+    return false
+  }
+
+  async ensureAudioWorkletsReady(config: AudioRuntimeConfig, onReady: () => void, onBlocked: () => void): Promise<boolean> {
+    const isAudioReady = await this.ensureAudioContextReady(config, onReady, onBlocked)
+    if (!this.context || !isAudioReady) return false
+
+    if (!this.audioWorkletsReadyPromise) {
+      this.audioWorkletsReadyPromise = this.context.audioWorklet.addModule('/audio-worklets.js').catch(error => {
+        this.audioWorkletsReadyPromise = null
+        throw error
+      })
+    }
+
+    await this.audioWorkletsReadyPromise
+    return true
+  }
+
+  async ensurePlaybackWorkletReady(config: AudioRuntimeConfig, onReady: () => void, onBlocked: () => void): Promise<boolean> {
+    const isWorkletReady = await this.ensureAudioWorkletsReady(config, onReady, onBlocked)
+    if (!isWorkletReady || !this.context) return false
+
+    if (!this.playbackWorkletNode) {
+      const outputNode = this.ensureOutputGainReady()
+      if (!outputNode) return false
+      this.playbackWorkletNode = new AudioWorkletNode(this.context, 'playback-audio-processor', {
+        numberOfInputs: 0,
+        numberOfOutputs: 1,
+        outputChannelCount: [1]
+      })
+      this.playbackWorkletNode.connect(outputNode)
+    }
+
+    return true
+  }
+
+  async enqueueAudioData(pcmFloat32Data: Float32Array, config: AudioRuntimeConfig, onReady: () => void, onBlocked: () => void) {
+    const isPlaybackReady = await this.ensurePlaybackWorkletReady(config, onReady, onBlocked)
+    if (!isPlaybackReady || !this.playbackWorkletNode) return
+    this.playbackWorkletNode.port.postMessage({ type: 'push', samples: pcmFloat32Data }, [pcmFloat32Data.buffer])
+  }
+
+  async startCapture(
+    config: AudioRuntimeConfig,
+    onReady: () => void,
+    onBlocked: () => void,
+    onCapture: (samples: Float32Array) => void
+  ): Promise<MediaStream> {
+    await this.ensureAudioContextReady(config, onReady, onBlocked)
+    const isWorkletReady = await this.ensureAudioWorkletsReady(config, onReady, onBlocked)
+    if (!isWorkletReady || !this.context) {
+      throw new Error('音频处理模块加载失败')
+    }
+
+    const isLossless = config.quality === 'lossless'
+    const constraints: MediaStreamConstraints = {
+      audio: {
+        echoCancellation: !isLossless,
+        noiseSuppression: !isLossless,
+        autoGainControl: false
+      },
+      video: false
+    }
+    
+    if (isLossless && config.protocol === 'webrtc') {
+      (constraints.audio as any).channelCount = 2;
+      (constraints.audio as any).sampleRate = 48000;
+    }
+
+    if (!isLossless && config.sampleRate && config.sampleRate > 0) {
+      (constraints.audio as any).sampleRate = config.sampleRate
+    }
+
+    this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints)
+
+    if (config.protocol === 'webrtc') {
+      return this.mediaStream
+    }
+
+    this.audioInput = this.context.createMediaStreamSource(this.mediaStream)
+    const outputNode = this.ensureOutputGainReady()
+    
+    if (!this.captureMonitorGainNode) {
+      this.captureMonitorGainNode = this.context.createGain()
+      this.captureMonitorGainNode.gain.value = 0
+      this.captureMonitorGainNode.connect(outputNode || this.context.destination)
+    }
+
+    this.captureWorkletNode = new AudioWorkletNode(this.context, 'capture-audio-processor', {
+      numberOfInputs: 1,
+      numberOfOutputs: 1,
+      channelCount: 1,
+      outputChannelCount: [1]
+    })
+
+    this.captureWorkletNode.port.onmessage = (event: MessageEvent<CaptureWorkletMessage>) => {
+      if (event.data?.type !== 'capture') return
+      onCapture(event.data.samples)
+    }
+
+    this.audioInput.connect(this.captureWorkletNode)
+    this.captureWorkletNode.connect(this.captureMonitorGainNode)
+
+    return this.mediaStream
+  }
+
+  stopCapture() {
+    if (this.audioInput) {
+      this.audioInput.disconnect()
+      this.audioInput = null
+    }
+    if (this.captureWorkletNode) {
+      this.captureWorkletNode.port.onmessage = null
+      this.captureWorkletNode.disconnect()
+      this.captureWorkletNode = null
+    }
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach(track => track.stop())
+      this.mediaStream = null
+    }
+  }
+
+  cleanup() {
+    this.stopCapture()
+    if (this.context) {
+      this.context.close()
+      this.context = null
+    }
+    this.outputGainNode = null
+    this.captureMonitorGainNode = null
+    this.captureWorkletNode = null
+    this.playbackWorkletNode = null
+    this.audioWorkletsReadyPromise = null
+    
+    Object.keys(this.remoteAudioElements).forEach(peerId => {
+      this.remoteAudioElements[peerId].remove()
+      delete this.remoteAudioElements[peerId]
+    })
+  }
+
+  static async checkMicPermission(): Promise<boolean> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      stream.getTracks().forEach(track => track.stop())
+      return true
+    } catch (e) {
+      return false
+    }
+  }
+}

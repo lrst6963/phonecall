@@ -1,0 +1,293 @@
+:root {
+  /* Material Design 3 Monet 默认翡翠绿 (Emerald) */
+  --theme-primary-light: #006b5f;
+  --theme-on-primary-light: #ffffff;
+  --theme-primary-container-light: #72f8e2;
+  --theme-on-primary-container-light: #00201b;
+  --theme-secondary-light: #4a635e;
+  --theme-on-secondary-light: #ffffff;
+  --theme-secondary-container-light: #cde8e1;
+  --theme-on-secondary-container-light: #05201b;
+
+  --theme-primary-dark: #4edbc6;
+  --theme-on-primary-dark: #003730;
+  --theme-primary-container-dark: #005047;
+  --theme-on-primary-container-dark: #72f8e2;
+  --theme-secondary-dark: #b1ccc5;
+  --theme-on-secondary-dark: #1d3530;
+  --theme-secondary-container-dark: #334b46;
+  --theme-on-secondary-container-dark: #cde8e1;
+
+  --md-sys-color-primary: var(--theme-primary-light);
+  --md-sys-color-on-primary: var(--theme-on-primary-light);
+  --md-sys-color-primary-container: var(--theme-primary-container-light);
+  --md-sys-color-on-primary-container: var(--theme-on-primary-container-light);
+  
+  --md-sys-color-secondary: var(--theme-secondary-light);
+  --md-sys-color-on-secondary: var(--theme-on-secondary-light);
+  --md-sys-color-secondary-container: var(--theme-secondary-container-light);
+  --md-sys-color-on-secondary-container: var(--theme-on-secondary-container-light);
+  
+  --md-sys-color-background: #fdfcff;
+  --md-sys-color-on-background: #1a1c1e;
+  --md-sys-color-surface: #fdfcff;
+  --md-sys-color-on-surface: #1a1c1e;
+  --md-sys-color-surface-variant: #dfe2eb;
+  --md-sys-color-on-surface-variant: #43474e;
+  
+  --md-sys-color-outline: #73777f;
+  --md-sys-color-outline-variant: #c3c7cf;
+  
+  --md-elevation-1: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15);
+  --md-elevation-2: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 2px 6px 2px rgba(0,0,0,0.15);
+  
+  /* Material Web Components 内部变量映射 */
+  --md-sys-color-on-surface-rgb: 26, 28, 30;
+  --md-sys-color-surface-container-highest: #e3e2e6;
+  --md-sys-color-surface-container: #f1f0f4;
+  --md-filled-select-text-field-container-color: var(--md-sys-color-surface-container-highest);
+  --md-outlined-text-field-container-color: transparent;
+  --md-filled-select-text-field-input-text-color: var(--md-sys-color-on-surface);
+  --md-outlined-text-field-input-text-color: var(--md-sys-color-on-surface);
+  --md-list-container-color: var(--md-sys-color-surface-container);
+  --md-list-item-label-text-color: var(--md-sys-color-on-surface);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --md-sys-color-primary: var(--theme-primary-dark);
+    --md-sys-color-on-primary: var(--theme-on-primary-dark);
+    --md-sys-color-primary-container: var(--theme-primary-container-dark);
+    --md-sys-color-on-primary-container: var(--theme-on-primary-container-dark);
+    
+    --md-sys-color-secondary: var(--theme-secondary-dark);
+    --md-sys-color-on-secondary: var(--theme-on-secondary-dark);
+    --md-sys-color-secondary-container: var(--theme-secondary-container-dark);
+    --md-sys-color-on-secondary-container: var(--theme-on-secondary-container-dark);
+    
+    --md-sys-color-background: #1a1c1e;
+    --md-sys-color-on-background: #e2e2e6;
+    --md-sys-color-surface: #1a1c1e;
+    --md-sys-color-on-surface: #e2e2e6;
+    --md-sys-color-surface-variant: #43474e;
+    --md-sys-color-on-surface-variant: #c3c7cf;
+    
+    --md-sys-color-outline: #8d9199;
+    --md-sys-color-outline-variant: #43474e;
+    
+    --md-elevation-1: 0px 1px 2px 0px rgba(0,0,0,0.5), 0px 1px 3px 1px rgba(0,0,0,0.3);
+    --md-elevation-2: 0px 1px 2px 0px rgba(0,0,0,0.5), 0px 2px 6px 2px rgba(0,0,0,0.3);
+
+    /* Material Web Components 深色变量映射 */
+    --md-sys-color-on-surface-rgb: 226, 226, 230;
+    --md-sys-color-surface-container-highest: #333538;
+    --md-sys-color-surface-container: #1e1f22;
+    --md-filled-select-text-field-container-color: var(--md-sys-color-surface-container-highest);
+    --md-outlined-text-field-container-color: transparent;
+    --md-filled-select-text-field-input-text-color: var(--md-sys-color-on-surface);
+    --md-outlined-text-field-input-text-color: var(--md-sys-color-on-surface);
+    --md-list-container-color: var(--md-sys-color-surface-container);
+    --md-list-item-label-text-color: var(--md-sys-color-on-surface);
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-background);
+  font-family: Roboto, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-wrapper {
+  min-height: 100vh;
+  display: flex;
+  background: var(--md-sys-color-surface-variant);
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.card-container {
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  padding: 32px;
+  border-radius: 28px; /* MD3 Extra Large Shape */
+  box-shadow: var(--md-elevation-2);
+  width: 100%;
+  max-width: 600px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+  .app-wrapper {
+    padding: 0; /* 移动端去掉外边距 */
+    align-items: stretch; /* 移动端上下拉伸 */
+  }
+
+  .card-container {
+    border-radius: 0; /* 移动端去掉圆角，更加沉浸 */
+    box-shadow: none; /* 移动端去掉阴影 */
+    max-width: none; /* 移动端不限制最大宽度 */
+    padding: 24px 16px; /* 移动端适当减小内边距 */
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .logs-container {
+    flex: 1; /* 日志区域自动撑满剩余空间 */
+    min-height: 200px;
+  }
+}
+
+.card-container h1 {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--md-sys-color-on-surface);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+md-outlined-text-field {
+  width: 100%;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.controls-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 32px 0 16px;
+  padding: 0 16px;
+}
+
+.mute-btn {
+  --md-icon-button-icon-color: var(--md-sys-color-on-surface-variant);
+  --md-icon-button-icon-size: 28px;
+}
+
+.mic-btn-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.mic-btn {
+  /* 增大麦克风按钮尺寸 */
+  --md-icon-button-state-layer-width: 96px;
+  --md-icon-button-state-layer-height: 96px;
+  --md-icon-button-icon-size: 48px;
+  width: 96px;
+  height: 96px;
+  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+  /* 移除组件自带的可能导致的边框 */
+  outline: none;
+  border: none;
+}
+
+.mic-active {
+  --md-sys-color-primary: #b3261e;
+  --md-sys-color-on-primary: #ffffff;
+  transform: scale(1.1);
+  box-shadow: 0 0 24px rgba(179, 38, 30, 0.5);
+  border-radius: 50%;
+}
+
+.controls-spacer {
+  width: 48px; /* 平衡左侧静音按钮的宽度 */
+}
+
+.badge {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.header-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.header-flex h1 {
+  margin: 0;
+}
+
+.ip-list {
+  background: var(--md-sys-color-surface-container);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 24px;
+}
+
+.ip-list-title {
+  font-weight: 500;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.ip-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.ip-item-address {
+  font-family: monospace;
+  word-break: break-all;
+  flex: 1;
+}
+
+.ip-item-status {
+  flex-shrink: 0;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.ip-item:last-child {
+  border-bottom: none;
+}
+
+.ip-status-ok { color: #2e7d32; }
+.ip-status-warn { color: #b3261e; }
+.ip-status-talk { color: #b06200; }
+
+.logs-container {
+  background: var(--md-sys-color-surface-container-highest);
+  padding: 12px;
+  border-radius: 12px;
+  height: 200px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 12px;
+  margin-top: 24px;
+}
+
+.log-entry {
+  margin-bottom: 4px;
+  color: var(--md-sys-color-on-surface-variant);
+}
