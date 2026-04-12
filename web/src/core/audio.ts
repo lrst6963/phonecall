@@ -4,11 +4,29 @@ export type AudioRuntimeConfig = {
   sampleRate: number
   bufferSize: number
   protocol: string
+  audio?: boolean
+  video?: boolean
+  videoDeviceId?: string
 }
 
 export type CaptureWorkletMessage = {
   type: 'capture'
   samples: Float32Array
+}
+
+export const buildVideoConstraints = (config: AudioRuntimeConfig): MediaTrackConstraints | false => {
+  if (!config.video) return false
+  const videoConstraints: MediaTrackConstraints = {
+    aspectRatio: { ideal: 16 / 9 },
+    width: { ideal: 1920 },
+    height: { ideal: 1080 },
+    frameRate: { ideal: 30, max: 60 }
+  }
+  if (config.videoDeviceId) {
+    videoConstraints.deviceId = { exact: config.videoDeviceId }
+  }
+  ;(videoConstraints as MediaTrackConstraints & { resizeMode?: string }).resizeMode = 'none'
+  return videoConstraints
 }
 
 export class AudioEngine {
@@ -19,7 +37,7 @@ export class AudioEngine {
   public playbackWorkletNode: AudioWorkletNode | null = null
   public audioInput: MediaStreamAudioSourceNode | null = null
   public mediaStream: MediaStream | null = null
-  public remoteAudioElements: Record<string, HTMLAudioElement> = {}
+  public remoteAudioElements: Record<string, HTMLMediaElement> = {}
   
   private audioWorkletsReadyPromise: Promise<void> | null = null
   private isMuted: boolean = false
@@ -53,7 +71,7 @@ export class AudioEngine {
     return this.outputGainNode
   }
 
-  async syncRemoteAudioElement(audioEl: HTMLAudioElement, onBlocked?: () => void) {
+  async syncRemoteAudioElement(audioEl: HTMLMediaElement, onBlocked?: () => void) {
     audioEl.muted = this.isMuted
     try {
       await audioEl.play()
@@ -170,13 +188,15 @@ export class AudioEngine {
     }
 
     const isLossless = config.quality === 'lossless'
+    const videoConstraints = buildVideoConstraints(config)
+
     const constraints: MediaStreamConstraints = {
-      audio: {
+      audio: config.audio === false ? false : {
         echoCancellation: !isLossless,
         noiseSuppression: !isLossless,
         autoGainControl: false
       },
-      video: false
+      video: videoConstraints
     }
     
     if (isLossless && config.protocol === 'webrtc') {
@@ -189,6 +209,29 @@ export class AudioEngine {
     }
 
     this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints)
+
+    if (config.audio !== false) {
+      const audioTrack = this.mediaStream.getAudioTracks()[0]
+      if (audioTrack) {
+        this.logMsg(`音频轨道设置: ${JSON.stringify(audioTrack.getSettings())}`)
+      } else {
+        this.logMsg('已请求麦克风，但未获取到音频轨道')
+      }
+    }
+
+    if (config.video) {
+      const videoTrack = this.mediaStream.getVideoTracks()[0]
+      if (videoTrack) {
+        const settings = videoTrack.getSettings()
+        const resolutionText = settings.width && settings.height
+          ? `${settings.width}x${settings.height}`
+          : '未知'
+        this.logMsg(`采集到的实际分辨率: ${resolutionText}`)
+        this.logMsg(`视频轨道设置: ${JSON.stringify(settings)}`)
+      } else {
+        this.logMsg('视频已开启，但未获取到视频轨道')
+      }
+    }
 
     if (config.protocol === 'webrtc') {
       return this.mediaStream

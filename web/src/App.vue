@@ -42,69 +42,111 @@
             <div
               v-for="user in currentRoomUsers"
               :key="user.id"
-              class="ip-item"
-              :class="{
-                'ip-item-self': user.id === clientId,
-                'ip-item-editable': user.id === clientId
-              }"
-              :tabindex="user.id === clientId ? 0 : -1"
-              @click="user.id === clientId && editDisplayName()"
-              @keydown.enter="user.id === clientId && editDisplayName()"
+              class="ip-user-wrapper"
             >
-              <span class="ip-item-address">{{ formatRoomUserLabel(user) }}</span>
-              <span class="ip-item-status" :class="getStatusColorClass(user.status)">
-                ({{ user.status }})
-              </span>
+              <div
+                class="ip-item"
+                :class="{
+                  'ip-item-self': user.id === clientId,
+                  'ip-item-editable': user.id === clientId
+                }"
+                :tabindex="user.id === clientId ? 0 : -1"
+                @click="user.id === clientId && editDisplayName()"
+                @keydown.enter="user.id === clientId && editDisplayName()"
+              >
+                <span class="ip-item-address">{{ formatRoomUserLabel(user) }}</span>
+                <span class="ip-item-status" :class="getStatusColorClass(user.status)">
+                  ({{ user.status }})
+                </span>
+              </div>
             </div>
           </div>
 
-          <div class="controls-container">
-            <!-- 扬声器静音按钮 -->
-            <md-icon-button
-              @click="toggleMute"
-              class="mute-btn"
-              :aria-label="isMuted ? '取消静音' : '静音'"
-            >
-              <span class="material-symbols-outlined">
-                {{ isMuted ? 'volume_off' : 'volume_up' }}
-              </span>
-            </md-icon-button>
-
-            <!-- 麦克风主按钮 -->
-            <div class="mic-btn-wrapper">
-              <md-filled-icon-button 
-                v-if="showCallBtn"
-                :disabled="isCallBtnDisabled"
-                @click="toggleCall"
-                class="mic-btn"
-                :class="{ 'mic-active': isCalling }"
-                :aria-label="callBtnText"
-              >
-                <span class="material-symbols-outlined">
-                  {{ isCalling ? 'mic_off' : 'mic' }}
-                </span>
-              </md-filled-icon-button>
-
-              <md-filled-tonal-icon-button 
-                v-if="showRequestTalkBtn"
-                :disabled="isRequestTalkBtnDisabled"
-                @click="requestTalk"
-                class="mic-btn"
-                :aria-label="requestTalkBtnText"
-              >
-                <span class="material-symbols-outlined">
-                  {{ isRequestingTalk ? 'hourglass_empty' : 'waving_hand' }}
-                </span>
-              </md-filled-tonal-icon-button>
+          <div class="controls-container" style="flex-direction: column; align-items: center;">
+            <!-- 摄像头设备选择 -->
+            <div class="device-select-wrapper" v-if="audioConfig.protocol === 'webrtc' && videoDevices.length > 0">
+              <select v-model="selectedVideoDeviceId" @change="changeVideoDevice" class="device-select" :title="isVideoOn ? '切换摄像头' : '选择摄像头'">
+                <option v-for="(device, index) in videoDevices" :key="device.deviceId" :value="device.deviceId">
+                  {{ device.label || '摄像头 ' + (index + 1) }}
+                </option>
+              </select>
             </div>
-            
-            <!-- 占位元素保持居中平衡 -->
-            <div class="controls-spacer"></div>
+
+            <div style="display: flex; width: 100%; justify-content: space-between; align-items: center;">
+              <!-- 摄像头按钮 -->
+              <md-icon-button
+                @click="toggleVideo"
+                class="video-btn"
+                :class="{ 'video-active': isVideoOn }"
+                :aria-label="isVideoOn ? '关闭摄像头' : '打开摄像头'"
+                v-if="audioConfig.protocol === 'webrtc'"
+              >
+                <span class="material-symbols-outlined">
+                  {{ isVideoOn ? 'videocam' : 'videocam_off' }}
+                </span>
+              </md-icon-button>
+
+              <!-- 扬声器静音按钮 -->
+              <md-icon-button
+                @click="toggleMute"
+                class="mute-btn"
+                :aria-label="isMuted ? '取消静音' : '静音'"
+              >
+                <span class="material-symbols-outlined">
+                  {{ isMuted ? 'volume_off' : 'volume_up' }}
+                </span>
+              </md-icon-button>
+
+              <!-- 麦克风主按钮 -->
+              <div class="mic-btn-wrapper">
+                <md-filled-icon-button 
+                  v-if="showCallBtn"
+                  :disabled="isCallBtnDisabled"
+                  @click="toggleCall"
+                  class="mic-btn"
+                  :class="{ 'mic-active': isCalling }"
+                  :aria-label="callBtnText"
+                >
+                  <span class="material-symbols-outlined">
+                    {{ isCalling ? 'mic_off' : 'mic' }}
+                  </span>
+                </md-filled-icon-button>
+
+                <md-filled-tonal-icon-button 
+                  v-if="showRequestTalkBtn"
+                  :disabled="isRequestTalkBtnDisabled"
+                  @click="requestTalk"
+                  class="mic-btn"
+                  :aria-label="requestTalkBtnText"
+                >
+                  <span class="material-symbols-outlined">
+                    {{ isRequestingTalk ? 'hourglass_empty' : 'waving_hand' }}
+                  </span>
+                </md-filled-tonal-icon-button>
+              </div>
+              
+              <!-- 占位元素保持居中平衡 -->
+              <div class="controls-spacer"></div>
+            </div>
           </div>
         </div>
 
         <!-- 聊天区域 -->
         <div class="room-chat">
+          <div class="video-grid" v-if="hasAnyVideo">
+            <div
+              v-for="user in usersWithVideo"
+              :key="'video_grid_' + user.id"
+              class="video-grid-item"
+            >
+              <div :id="'video_container_' + user.id" class="user-video-container"></div>
+              <div class="video-user-label">{{ formatRoomUserLabel(user) }}</div>
+              <button class="video-fullscreen-btn" @click="toggleFullscreen('video_container_' + user.id)" title="全屏">
+                <span class="material-symbols-outlined">fullscreen</span>
+              </button>
+            </div>
+          </div>
+          
           <div class="chat-container">
             <div class="chat-messages" ref="chatMessagesContainer">
               <div
@@ -244,7 +286,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { getKey, hashPassword, encryptAudio, decryptAudio } from './utils/crypto'
 import { createClientId, isSocketOpen, buildWebSocketUrl, float32ToInt16, int16ToFloat32 } from './utils/helpers'
-import { AudioEngine, AudioRuntimeConfig } from './core/audio'
+import { AudioEngine, AudioRuntimeConfig, buildVideoConstraints } from './core/audio'
 import { initPeerConnection, handleWebRTCSignal } from './core/connection'
 
 // --- 状态定义 ---
@@ -332,9 +374,15 @@ const formatFileSize = (bytes?: number) => {
 const currentRoomUsers = ref<RoomUser[]>([])
 const userCount = computed(() => currentRoomUsers.value.length)
 
+const usersWithVideo = ref<RoomUser[]>([])
+const hasAnyVideo = computed(() => usersWithVideo.value.length > 0)
+
 // 控制状态
 const isCalling = ref(false)
 const isMuted = ref(false)
+const isVideoOn = ref(false)
+const videoDevices = ref<MediaDeviceInfo[]>([])
+const selectedVideoDeviceId = ref('')
 const mediaChannelReady = ref(false)
 const isRequestingTalk = ref(false)
 
@@ -438,6 +486,187 @@ const getStatusColorClass = (status: string) => {
   return ''
 }
 
+const applyVideoElementStyle = (videoEl: HTMLMediaElement) => {
+  videoEl.style.width = '100%'
+  videoEl.style.height = '100%'
+  videoEl.style.maxWidth = '100%'
+  videoEl.style.maxHeight = '100%'
+  videoEl.style.objectFit = 'contain'
+  videoEl.style.display = 'block'
+  videoEl.style.backgroundColor = '#000'
+}
+
+const isMissingVideoDeviceError = (error: unknown) => {
+  if (!(error instanceof Error)) return false
+  const message = error.message.toLowerCase()
+  const name = error.name.toLowerCase()
+  return name.includes('notfound') || message.includes('requested device not found')
+}
+
+const normalizeSelectedVideoDevice = () => {
+  if (videoDevices.value.length === 0) {
+    selectedVideoDeviceId.value = ''
+    return false
+  }
+  const exists = videoDevices.value.some(device => device.deviceId === selectedVideoDeviceId.value)
+  if (!selectedVideoDeviceId.value || !exists) {
+    selectedVideoDeviceId.value = videoDevices.value[0].deviceId
+    return true
+  }
+  return false
+}
+
+const startCaptureWithVideoDeviceFallback = async () => {
+  audioConfig.videoDeviceId = selectedVideoDeviceId.value || undefined
+  try {
+    await startAudio()
+    return
+  } catch (error) {
+    if (!audioConfig.video || !isMissingVideoDeviceError(error)) {
+      throw error
+    }
+    await loadVideoDevices()
+    const switched = normalizeSelectedVideoDevice()
+    audioConfig.videoDeviceId = selectedVideoDeviceId.value || undefined
+    if (!switched) {
+      throw error
+    }
+    logMsg('当前摄像头设备已失效，已自动切换到可用设备')
+    await startAudio()
+  }
+}
+
+const logVideoTrackSettings = (videoTrack: MediaStreamTrack) => {
+  const settings = videoTrack.getSettings()
+  const resolutionText = settings.width && settings.height
+    ? `${settings.width}x${settings.height}`
+    : '未知'
+  logMsg(`采集到的实际分辨率: ${resolutionText}`)
+  logMsg(`视频轨道设置: ${JSON.stringify(settings)}`)
+}
+
+const syncPeerConnectionTracks = () => {
+  if (audioConfig.protocol !== 'webrtc' || !audioEngine.mediaStream) return
+  Object.keys(peerConnections).forEach(pcId => {
+    const pc = peerConnections[pcId]
+    if (pc.signalingState === 'closed') return
+
+    const senders = pc.getSenders()
+    const newTracks = audioEngine.mediaStream!.getTracks()
+
+    senders.forEach(sender => {
+      if (sender.track && (!newTracks.find(t => t.kind === sender.track!.kind) || (sender.track.kind === 'audio' && audioConfig.audio === false))) {
+        pc.removeTrack(sender)
+      }
+    })
+
+    newTracks.forEach(track => {
+      if (track.kind === 'audio' && audioConfig.audio === false) return
+      const sender = senders.find(s => s.track && s.track.kind === track.kind)
+      if (sender) {
+        sender.replaceTrack(track).catch(e => console.warn('Replace track failed:', e))
+      } else {
+        pc.addTrack(track, audioEngine.mediaStream!)
+      }
+    })
+  })
+}
+
+const updateLocalVideoPreview = () => {
+  const localStream = audioEngine.mediaStream
+  const hasVideo = !!localStream && localStream.getVideoTracks().length > 0
+
+  if (hasVideo || isVideoOn.value) {
+    const userIndex = usersWithVideo.value.findIndex(u => u.id === clientId)
+    if (userIndex === -1) {
+      const user = currentRoomUsers.value.find(u => u.id === clientId)
+      if (user) {
+        usersWithVideo.value.push(user)
+      }
+    }
+  } else {
+    const userIndex = usersWithVideo.value.findIndex(u => u.id === clientId)
+    if (userIndex !== -1) {
+      usersWithVideo.value.splice(userIndex, 1)
+    }
+  }
+
+  nextTick(() => {
+    const updatedLocalVideoContainer = document.getElementById(`video_container_${clientId}`)
+    if (updatedLocalVideoContainer) {
+      let localVideo = document.getElementById(`video_${clientId}`) as HTMLVideoElement
+      if (!localVideo) {
+        localVideo = document.createElement('video')
+        localVideo.id = `video_${clientId}`
+        localVideo.className = 'user-video'
+        localVideo.autoplay = true
+        localVideo.muted = true
+        localVideo.playsInline = true
+      }
+      applyVideoElementStyle(localVideo)
+      if (!updatedLocalVideoContainer.contains(localVideo)) {
+        updatedLocalVideoContainer.appendChild(localVideo)
+      }
+      localVideo.srcObject = hasVideo ? localStream : null
+      localVideo.style.display = hasVideo ? 'block' : 'none'
+    }
+  })
+}
+
+const removeLocalVideoTracks = () => {
+  if (!audioEngine.mediaStream) return
+  audioEngine.mediaStream.getVideoTracks().forEach(track => {
+    audioEngine.mediaStream!.removeTrack(track)
+    track.stop()
+  })
+}
+
+const removeLocalAudioTracks = () => {
+  if (!audioEngine.mediaStream) return
+  audioEngine.mediaStream.getAudioTracks().forEach(track => {
+    audioEngine.mediaStream!.removeTrack(track)
+    track.stop()
+  })
+}
+
+const startVideoTrackWithFallback = async () => {
+  const requestVideoTrack = async () => {
+    audioConfig.videoDeviceId = selectedVideoDeviceId.value || undefined
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: buildVideoConstraints(audioConfig)
+    })
+    const videoTrack = stream.getVideoTracks()[0]
+    if (!videoTrack) {
+      throw new Error('未获取到视频轨道')
+    }
+    logVideoTrackSettings(videoTrack)
+    if (!audioEngine.mediaStream) {
+      audioEngine.mediaStream = new MediaStream()
+    }
+    removeLocalVideoTracks()
+    audioEngine.mediaStream.addTrack(videoTrack)
+    syncPeerConnectionTracks()
+    updateLocalVideoPreview()
+  }
+
+  try {
+    await requestVideoTrack()
+    return
+  } catch (error) {
+    if (!audioConfig.video || !isMissingVideoDeviceError(error)) {
+      throw error
+    }
+    await loadVideoDevices()
+    const switched = normalizeSelectedVideoDevice()
+    if (!switched) {
+      throw error
+    }
+    logMsg('当前摄像头设备已失效，已自动切换到可用设备')
+    await requestVideoTrack()
+  }
+}
+
 const bindAudioUnlockEvents = () => {
   if (audioUnlockBound) return
   const unlockAudio = async () => {
@@ -460,15 +689,44 @@ const getPeerConnection = (targetId: string) => {
     audioEngine.mediaStream,
     audioConfig.quality,
     (id, stream) => {
-      const remoteAudio = audioEngine.remoteAudioElements[id] || document.createElement('audio')
+      const remoteAudio = audioEngine.remoteAudioElements[id] || document.createElement('video')
+      applyVideoElementStyle(remoteAudio)
       remoteAudio.srcObject = stream
       remoteAudio.autoplay = true
       remoteAudio.setAttribute('playsinline', 'true')
-      remoteAudio.id = `audio_${id}`
+      remoteAudio.id = `video_${id}`
+      remoteAudio.className = 'user-video'
+      remoteAudio.style.display = 'none' // will be moved/managed in DOM, but keep in case
       audioEngine.remoteAudioElements[id] = remoteAudio
+      
+      const updateVisibility = () => {
+        const hasVideo = stream.getVideoTracks().length > 0
+        remoteAudio.style.display = hasVideo ? 'block' : 'none'
+        
+        const userIndex = usersWithVideo.value.findIndex(u => u.id === id)
+        if (hasVideo && userIndex === -1) {
+          const user = currentRoomUsers.value.find(u => u.id === id)
+          if (user) {
+            usersWithVideo.value.push(user)
+            nextTick(() => {
+              const updatedContainer = document.getElementById(`video_container_${id}`)
+              if (updatedContainer && !updatedContainer.contains(remoteAudio)) {
+                updatedContainer.appendChild(remoteAudio)
+              }
+            })
+          }
+        } else if (!hasVideo && userIndex !== -1) {
+          usersWithVideo.value.splice(userIndex, 1)
+        }
+      }
+      updateVisibility()
+      stream.onaddtrack = updateVisibility
+      stream.onremovetrack = updateVisibility
+
       if (!remoteAudio.isConnected) {
         document.body.appendChild(remoteAudio)
       }
+      
       audioEngine.syncRemoteAudioElement(remoteAudio).catch(e => console.warn(e))
     },
     (id) => {
@@ -479,6 +737,11 @@ const getPeerConnection = (targetId: string) => {
       }
       pc.close()
       delete peerConnections[id]
+      
+      const userIndex = usersWithVideo.value.findIndex(u => u.id === id)
+      if (userIndex !== -1) {
+        usersWithVideo.value.splice(userIndex, 1)
+      }
     }
   )
 
@@ -1022,6 +1285,10 @@ const updateRoomInfo = (data: any) => {
           audioEl.remove()
           delete audioEngine.remoteAudioElements[peerId]
         }
+        const userIndex = usersWithVideo.value.findIndex(u => u.id === peerId)
+        if (userIndex !== -1) {
+          usersWithVideo.value.splice(userIndex, 1)
+        }
       }
     })
   }
@@ -1056,13 +1323,111 @@ const toggleCall = async (forceState?: boolean | Event) => {
   }
 
   try {
-    await startAudio()
+    audioConfig.audio = true
+    await startCaptureWithVideoDeviceFallback()
     isCalling.value = true
     logMsg('已打开麦克风')
     reportStatus('对讲中')
   } catch (e: any) {
     logMsg('开启麦克风失败: ' + e.message)
     reportStatus('麦克风无权限')
+  }
+}
+
+const toggleVideo = async () => {
+  isVideoOn.value = !isVideoOn.value
+  audioConfig.video = isVideoOn.value
+  
+  if (isCalling.value && audioEngine.mediaStream) {
+    try {
+      if (isVideoOn.value) {
+        await startVideoTrackWithFallback()
+        logMsg('已打开摄像头')
+        await loadVideoDevices()
+      } else {
+        removeLocalVideoTracks()
+        syncPeerConnectionTracks()
+        updateLocalVideoPreview()
+        logMsg('已关闭摄像头')
+      }
+    } catch (e: any) {
+      isVideoOn.value = false
+      audioConfig.video = false
+      logMsg('无法打开摄像头: ' + e.message)
+    }
+    return
+  }
+
+  if (isCalling.value || isVideoOn.value) {
+    try {
+      audioEngine.stopCapture()
+      audioConfig.audio = isCalling.value
+      await startCaptureWithVideoDeviceFallback()
+      logMsg(isVideoOn.value ? '已打开摄像头' : '已关闭摄像头')
+      if (isVideoOn.value) {
+        await loadVideoDevices()
+      }
+    } catch (e: any) {
+      isVideoOn.value = false
+      audioConfig.video = false
+      logMsg('无法打开摄像头: ' + e.message)
+      if (isCalling.value) {
+        try {
+          audioConfig.audio = true
+          await startCaptureWithVideoDeviceFallback()
+        } catch (err: any) {
+          logMsg('无法恢复麦克风: ' + err.message)
+          stopAudio()
+          reportStatus('麦克风无权限')
+        }
+      }
+    }
+  } else {
+    // 都不开启，清理流
+    audioEngine.stopCapture()
+  }
+}
+
+const changeVideoDevice = async () => {
+  audioConfig.videoDeviceId = selectedVideoDeviceId.value || undefined
+  if (isVideoOn.value) {
+    try {
+      if (audioEngine.mediaStream) {
+        await startVideoTrackWithFallback()
+      } else {
+        audioConfig.audio = isCalling.value
+        await startCaptureWithVideoDeviceFallback()
+      }
+      logMsg('已切换摄像头')
+    } catch (e: any) {
+      console.error(e)
+    }
+  }
+}
+
+const loadVideoDevices = async () => {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices()
+    videoDevices.value = devices.filter(d => d.kind === 'videoinput')
+    const switched = normalizeSelectedVideoDevice()
+    if (switched && isVideoOn.value) {
+      logMsg('检测到摄像头列表变化，已自动选择可用设备')
+    }
+  } catch (e) {
+    console.warn('获取摄像头列表失败', e)
+  }
+}
+
+const toggleFullscreen = (containerId: string) => {
+  const container = document.getElementById(containerId)
+  if (!container) return
+
+  if (!document.fullscreenElement) {
+    container.requestFullscreen().catch(err => {
+      console.warn(`Error attempting to enable fullscreen: ${err.message}`)
+    })
+  } else {
+    document.exitFullscreen()
   }
 }
 
@@ -1089,42 +1454,42 @@ const startAudio = async () => {
     }
   )
 
-  if (audioConfig.protocol === 'webrtc') {
-    Object.values(peerConnections).forEach(pc => {
-      if (pc.signalingState === 'closed') return
-      
-      const senders = pc.getSenders()
-      audioEngine.mediaStream!.getTracks().forEach(track => {
-        const sender = senders.find(s => s.track && s.track.kind === track.kind)
-        if (sender) {
-          sender.replaceTrack(track).catch(e => console.warn('Replace track failed:', e))
-        } else {
-          pc.addTrack(track, audioEngine.mediaStream!)
-        }
-      })
-      // 移除手动触发 negotiationneeded，让浏览器自己处理 addTrack 带来的原生事件
-    })
-  }
+  syncPeerConnectionTracks()
+  updateLocalVideoPreview()
 }
 
 const stopAudio = () => {
   isCalling.value = false
 
   if (audioConfig.protocol === 'webrtc') {
-    Object.values(peerConnections).forEach(pc => {
-      if (pc.signalingState === 'closed') return
-      
-      const senders = pc.getSenders()
-      senders.forEach(sender => {
-        if (sender.track) {
-          sender.track.enabled = false
-        }
-      })
-    })
+    removeLocalAudioTracks()
+    syncPeerConnectionTracks()
+  }
+
+  if (isVideoOn.value) {
+    audioConfig.audio = false
+    updateLocalVideoPreview()
+    logMsg('已关闭麦克风')
+    return
   }
 
   audioEngine.stopCapture()
   logMsg('已关闭麦克风')
+
+  // 隐藏本地视频
+  const localVideo = document.getElementById(`video_${clientId}`) as HTMLVideoElement
+  if (localVideo) {
+    localVideo.srcObject = null
+    localVideo.style.display = 'none'
+  }
+  
+  // 仅在完全关闭摄像头时才移除视频框
+  if (!isVideoOn.value) {
+    const userIndex = usersWithVideo.value.findIndex(u => u.id === clientId)
+    if (userIndex !== -1) {
+      usersWithVideo.value.splice(userIndex, 1)
+    }
+  }
 }
 
 const reportStatus = (status: string) => {
@@ -1163,6 +1528,7 @@ const requestTalk = () => {
 const leaveRoom = () => {
   if (isCleaningUp) return
   isCleaningUp = true
+  usersWithVideo.value = []
   stopAudio()
   sessionStorage.removeItem('roomPassword')
 
@@ -1194,6 +1560,10 @@ const leaveRoom = () => {
 
 onMounted(async () => {
   bindAudioUnlockEvents()
+  if (navigator.mediaDevices) {
+    navigator.mediaDevices.addEventListener('devicechange', loadVideoDevices)
+    loadVideoDevices()
+  }
   try {
     const response = await fetch('/api/audio-config')
     if (response.ok) {
@@ -1214,6 +1584,9 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  if (navigator.mediaDevices) {
+    navigator.mediaDevices.removeEventListener('devicechange', loadVideoDevices)
+  }
   cancelMessageLongPress()
   clearPendingImages()
 })
@@ -1224,6 +1597,92 @@ onBeforeUnmount(() => {
   font-family: monospace;
 }
 
+.video-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  background: var(--md-sys-color-surface-container-highest);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  justify-content: center;
+  align-items: center;
+}
+.video-grid-item {
+  width: 100%;
+  position: relative;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 2px solid var(--md-sys-color-outline-variant);
+  box-sizing: border-box;
+}
+@media (min-width: 600px) {
+  .video-grid-item {
+    width: calc(50% - 6px);
+  }
+}
+@media (min-width: 1000px) {
+  .video-grid-item {
+    width: calc(33.333% - 8px);
+  }
+}
+.video-grid-item .user-video-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #000;
+}
+.video-grid-item .user-video {
+  max-height: 100%;
+  max-width: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block !important;
+}
+.video-user-label {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 10;
+}
+.video-fullscreen-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+.video-fullscreen-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+.video-fullscreen-btn .material-symbols-outlined {
+  font-size: 18px;
+}
 .chat-container {
   background: var(--md-sys-color-surface-container-highest);
   border-radius: 12px;
@@ -1231,6 +1690,10 @@ onBeforeUnmount(() => {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+}
+.video-grid + .chat-container {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .chat-messages {
@@ -1432,5 +1895,90 @@ onBeforeUnmount(() => {
 
 .chat-input-field {
   flex: 1;
+}
+
+.device-select-wrapper {
+  width: 100%;
+  margin-bottom: 8px;
+}
+.device-select {
+  width: 100%;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--md-sys-color-outline);
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font-size: 13px;
+  outline: none;
+}
+.ip-list {
+  flex: 1;
+  background: var(--md-sys-color-surface);
+  border-radius: 12px;
+  padding: 12px;
+  overflow-y: auto;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  display: flex;
+  flex-direction: column;
+}
+.ip-list-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  padding: 0 4px 8px 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+.ip-user-wrapper {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  margin-bottom: 8px;
+  background-color: var(--md-sys-color-surface-container);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ip-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--md-sys-color-on-surface);
+  transition: background-color 0.2s;
+  border-bottom: none;
+}
+.ip-item-self {
+  font-weight: bold;
+  background-color: transparent;
+  color: var(--md-sys-color-primary);
+}
+.ip-item-editable {
+  cursor: pointer;
+  border-radius: 4px;
+}
+.ip-item-editable:hover {
+  background-color: var(--md-sys-color-surface-container-highest);
+}
+.user-video-container {
+  width: 100%;
+  background-color: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+.user-video {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.ip-item:last-child {
+  border-bottom: none;
 }
 </style>
