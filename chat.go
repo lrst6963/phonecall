@@ -19,9 +19,10 @@ import (
 type ChatMessage struct {
 	ID        string `json:"id"`
 	RoomID    string `json:"roomId"`
-	SenderID  string `json:"senderId"`
-	SenderIP  string `json:"senderIp"`
-	Type      string `json:"type"`    // "text", "image", "file"
+	SenderID   string `json:"senderId"`
+	SenderIP   string `json:"senderIp"`
+	SenderName string `json:"senderName,omitempty"`
+	Type       string `json:"type"`    // "text", "image", "file"
 	Content   string `json:"content"` // Text content or file URL path
 	FileName  string `json:"fileName,omitempty"`
 	FileSize  int64  `json:"fileSize,omitempty"`
@@ -102,16 +103,16 @@ func getChatHistory(roomID string) []ChatMessage {
 	return messages
 }
 
-func getSenderIP(roomID, senderID string) string {
+func getSenderInfo(roomID, senderID string) (ip string, name string) {
 	roomsMutex.Lock()
 	defer roomsMutex.Unlock()
 
 	if cmap, ok := rooms[roomID]; ok {
 		if c, ok := cmap[senderID]; ok {
-			return c.ip
+			return c.ip, c.name
 		}
 	}
-	return ""
+	return "", ""
 }
 
 func saveUploadedFile(file io.Reader, filename string) (string, error) {
@@ -349,19 +350,20 @@ func handleFileUploadAPI(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error saving file", http.StatusInternalServerError)
 		return
 	}
-	senderIP := getSenderIP(roomID, senderID)
+	senderIP, senderName := getSenderInfo(roomID, senderID)
 
 	// 创建聊天消息记录
 	msg := ChatMessage{
-		ID:        fmt.Sprintf("%d", time.Now().UnixNano()),
-		RoomID:    roomID,
-		SenderID:  senderID,
-		SenderIP:  senderIP,
-		Type:      fileType,
-		Content:   "/api/download/" + safeFilename,
-		FileName:  header.Filename,
-		FileSize:  header.Size,
-		Timestamp: time.Now().UnixMilli(),
+		ID:         fmt.Sprintf("%d", time.Now().UnixNano()),
+		RoomID:     roomID,
+		SenderID:   senderID,
+		SenderIP:   senderIP,
+		SenderName: senderName,
+		Type:       fileType,
+		Content:    "/api/download/" + safeFilename,
+		FileName:   header.Filename,
+		FileSize:   header.Size,
+		Timestamp:  time.Now().UnixMilli(),
 	}
 
 	if err := saveChatMessage(msg); err != nil {
@@ -438,14 +440,16 @@ func handleBatchImageUploadAPI(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	senderIP, senderName := getSenderInfo(roomID, senderID)
 	msg := ChatMessage{
-		ID:        fmt.Sprintf("%d", time.Now().UnixNano()),
-		RoomID:    roomID,
-		SenderID:  senderID,
-		SenderIP:  getSenderIP(roomID, senderID),
-		Type:      "image_group",
-		Images:    images,
-		Timestamp: time.Now().UnixMilli(),
+		ID:         fmt.Sprintf("%d", time.Now().UnixNano()),
+		RoomID:     roomID,
+		SenderID:   senderID,
+		SenderIP:   senderIP,
+		SenderName: senderName,
+		Type:       "image_group",
+		Images:     images,
+		Timestamp:  time.Now().UnixMilli(),
 	}
 
 	if err := saveChatMessage(msg); err != nil {

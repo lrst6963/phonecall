@@ -37,10 +37,21 @@
       <div class="room-content">
         <div class="room-sidebar">
           <div class="ip-list">
-            <div class="ip-list-title">当前在线 IP:</div>
+            <div class="ip-list-title">当前在线成员</div>
             <div v-if="currentRoomUsers.length === 0" class="ip-item" style="color: var(--md-sys-color-outline);">暂无其他用户</div>
-            <div v-for="(user, index) in currentRoomUsers" :key="index" class="ip-item">
-              <span class="ip-item-address">{{ user.ip }}</span>
+            <div
+              v-for="user in currentRoomUsers"
+              :key="user.id"
+              class="ip-item"
+              :class="{
+                'ip-item-self': user.id === clientId,
+                'ip-item-editable': user.id === clientId
+              }"
+              :tabindex="user.id === clientId ? 0 : -1"
+              @click="user.id === clientId && editDisplayName()"
+              @keydown.enter="user.id === clientId && editDisplayName()"
+            >
+              <span class="ip-item-address">{{ formatRoomUserLabel(user) }}</span>
               <span class="ip-item-status" :class="getStatusColorClass(user.status)">
                 ({{ user.status }})
               </span>
@@ -111,7 +122,7 @@
                 @touchcancel="cancelMessageLongPress"
               >
                 <div class="chat-message-header">
-                  <span class="chat-sender">{{ msg.senderId === clientId ? '我' : (msg.senderIp ? msg.senderIp.slice(-4) : msg.senderId.slice(0, 4)) }}</span>
+                  <span class="chat-sender">{{ getSenderDisplayName(msg) }}</span>
                   <span class="chat-time">{{ new Date(msg.timestamp).toLocaleTimeString() }}</span>
                 </div>
                 <div
@@ -258,6 +269,7 @@ const toggleLogs = () => {
 type RoomUser = {
   id: string
   ip: string
+  name?: string
   status: string
 }
 
@@ -267,6 +279,7 @@ type ChatMessage = {
   roomId: string
   senderId: string
   senderIp?: string
+  senderName?: string
   type: string
   content: string
   fileName?: string
@@ -365,6 +378,7 @@ let mediaWs: WebSocket | null = null
 let clientId = ''
 let currentRoomId = ''
 let isCleaningUp = false
+const displayName = ref(normalizeDisplayName(localStorage.getItem('phonecall_displayName') || ''))
 
 // WebRTC
 let peerConnections: Record<string, RTCPeerConnection> = {}
@@ -385,6 +399,37 @@ const logMsg = (msg: string) => {
 }
 
 const audioEngine = new AudioEngine(logMsg)
+
+const getSenderDisplayName = (msg: ChatMessage) => {
+  if (msg.senderId === clientId) return '我'
+  if (msg.senderName) return msg.senderName
+  return msg.senderIp ? msg.senderIp.slice(-4) : msg.senderId.slice(0, 4)
+}
+
+function normalizeDisplayName(name: string) {
+  const normalized = Array.from(name.trim()).slice(0, 20).join('')
+  return normalized || '未命名'
+}
+
+const formatRoomUserLabel = (user: RoomUser) => `${normalizeDisplayName(user.name || '')}(${user.ip})`
+
+const editDisplayName = () => {
+  const nextName = window.prompt('请输入昵称（最多20字）', displayName.value === '未命名' ? '' : displayName.value)
+  if (nextName === null) return
+
+  const normalizedName = normalizeDisplayName(nextName)
+  if (normalizedName === displayName.value) return
+
+  displayName.value = normalizedName
+  localStorage.setItem('phonecall_displayName', normalizedName)
+
+  if (isSocketOpen(controlWs)) {
+    controlWs!.send(JSON.stringify({
+      type: 'update_name',
+      name: normalizedName
+    }))
+  }
+}
 
 const getStatusColorClass = (status: string) => {
   if (status === '就绪') return 'ip-status-ok'
@@ -858,7 +903,7 @@ const revokeMessage = async (message: ChatMessage) => {
 }
 
 const connectControlChannel = (roomId: string) => {
-  controlWs = new WebSocket(buildWebSocketUrl('/ws/control', roomId, clientId))
+  controlWs = new WebSocket(buildWebSocketUrl('/ws/control', roomId, clientId, { name: displayName.value }))
 
   controlWs.onopen = () => {
     logMsg('控制通道已连接')

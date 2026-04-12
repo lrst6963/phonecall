@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,6 +27,7 @@ var upgrader = websocket.Upgrader{
 type Client struct {
 	id          string
 	ip          string
+	name        string
 	status      string
 	controlConn *websocket.Conn
 	mediaConn   *websocket.Conn
@@ -44,6 +46,7 @@ var (
 type UserInfo struct {
 	ID     string `json:"id"`
 	IP     string `json:"ip"`
+	Name   string `json:"name"`
 	Status string `json:"status"`
 }
 
@@ -72,6 +75,7 @@ func broadcastRoomInfo(roomID string) {
 		users = append(users, UserInfo{
 			ID:     c.id,
 			IP:     c.ip,
+			Name:   c.name,
 			Status: c.status,
 		})
 	}
@@ -118,6 +122,18 @@ func getClientIP(r *http.Request) string {
 	return ip
 }
 
+func normalizeClientName(name string) string {
+	name = strings.TrimSpace(name)
+	nameRunes := []rune(name)
+	if len(nameRunes) > 20 {
+		name = string(nameRunes[:20])
+	}
+	if name == "" {
+		return "未命名"
+	}
+	return name
+}
+
 func countActiveClients(clientsMap map[string]*Client) int {
 	count := 0
 	for _, client := range clientsMap {
@@ -128,9 +144,10 @@ func countActiveClients(clientsMap map[string]*Client) int {
 	return count
 }
 
-func registerControlClient(roomID, clientID, ip string, conn *websocket.Conn) (*Client, *websocket.Conn, *websocket.Conn, bool) {
+func registerControlClient(roomID, clientID, ip, name string, conn *websocket.Conn) (*Client, *websocket.Conn, *websocket.Conn, bool) {
 	var oldControlConn *websocket.Conn
 	var oldMediaConn *websocket.Conn
+	normalizedName := normalizeClientName(name)
 
 	roomsMutex.Lock()
 	if rooms[roomID] == nil {
@@ -143,7 +160,7 @@ func registerControlClient(roomID, clientID, ip string, conn *websocket.Conn) (*
 			roomsMutex.Unlock()
 			return nil, nil, nil, false
 		}
-		client = &Client{id: clientID, ip: ip, status: "就绪"}
+		client = &Client{id: clientID, ip: ip, name: normalizedName, status: "就绪"}
 		rooms[roomID][clientID] = client
 	} else {
 		if client.controlConn == nil && appConfig.Mode == "walkie-talkie" && countActiveClients(rooms[roomID]) >= 2 {
@@ -155,6 +172,7 @@ func registerControlClient(roomID, clientID, ip string, conn *websocket.Conn) (*
 	}
 
 	client.ip = ip
+	client.name = normalizedName
 	client.status = "就绪"
 	client.controlConn = conn
 	client.mediaConn = nil
@@ -199,6 +217,24 @@ func updateClientStatus(roomID, clientID, status string) bool {
 	}
 
 	client.status = status
+	return true
+}
+
+func updateClientName(roomID, clientID, name string) bool {
+	roomsMutex.Lock()
+	defer roomsMutex.Unlock()
+
+	clientsMap := rooms[roomID]
+	if clientsMap == nil {
+		return false
+	}
+
+	client := clientsMap[clientID]
+	if client == nil || client.controlConn == nil {
+		return false
+	}
+
+	client.name = normalizeClientName(name)
 	return true
 }
 
@@ -379,7 +415,7 @@ func handleControlConnections(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, oldControlConn, oldMediaConn, ok := registerControlClient(roomID, clientID, getClientIP(r), ws)
+	client, oldControlConn, oldMediaConn, ok := registerControlClient(roomID, clientID, getClientIP(r), r.URL.Query().Get("name"), ws)
 	if !ok {
 		_ = ws.WriteMessage(websocket.TextMessage, []byte(`{"type":"error","message":"对讲机模式频道人数已达上限(2人)"}`))
 		_ = ws.Close()
@@ -420,6 +456,13 @@ func handleControlConnections(w http.ResponseWriter, r *http.Request) {
 			if updateClientStatus(roomID, clientID, msgData.Status) {
 				broadcastRoomInfo(roomID)
 			}
+		case "update_name":
+			var nameMsgData struct {
+				Name string `json:"name"`
+			}
+			if err := json.Unmarshal(p, &nameMsgData); err == nil && updateClientName(roomID, clientID, nameMsgData.Name) {
+				broadcastRoomInfo(roomID)
+			}
 		case "request_talk", "approve_talk":
 			forwardControlSignal(roomID, client.id, msgData.Type)
 		case "webrtc_offer", "webrtc_answer", "webrtc_candidate":
@@ -434,13 +477,14 @@ func handleControlConnections(w http.ResponseWriter, r *http.Request) {
 					chatMsgData.Content = string(contentRunes[:1000])
 				}
 				msg := ChatMessage{
-					ID:        fmt.Sprintf("%d", time.Now().UnixNano()),
-					RoomID:    roomID,
-					SenderID:  clientID,
-					SenderIP:  client.ip,
-					Type:      "text",
-					Content:   chatMsgData.Content,
-					Timestamp: time.Now().UnixMilli(),
+					ID:         fmt.Sprintf("%d", time.Now().UnixNano()),
+					RoomID:     roomID,
+					SenderID:   clientID,
+					SenderIP:   client.ip,
+					SenderName: client.name,
+					Type:       "text",
+					Content:    chatMsgData.Content,
+					Timestamp:  time.Now().UnixMilli(),
 				}
 				saveChatMessage(msg)
 				broadcastChatMessage(roomID, msg)

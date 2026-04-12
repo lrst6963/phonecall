@@ -357,10 +357,11 @@ md-outlined-text-field {
   gap: 8px;
   padding: 8px;
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 10px;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .ip-item-address {
-  font-family: monospace;
   word-break: break-all;
   flex: 1;
 }
@@ -373,6 +374,28 @@ md-outlined-text-field {
 
 .ip-item:last-child {
   border-bottom: none;
+}
+
+.ip-item-self {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.ip-item-self .ip-item-status {
+  color: var(--md-sys-color-primary);
+}
+
+.ip-item-editable {
+  cursor: pointer;
+}
+
+.ip-item-editable:hover {
+  background: color-mix(in srgb, var(--md-sys-color-primary-container) 72%, white);
+}
+
+.ip-item-editable:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
 }
 
 .ip-status-ok { color: #2e7d32; }
@@ -395,4 +418,3 @@ md-outlined-text-field {
   margin-bottom: 4px;
   color: var(--md-sys-color-on-surface-variant);
 }
-

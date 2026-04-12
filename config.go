@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Config 存储应用配置
@@ -22,17 +23,34 @@ type Config struct {
 func LoadConfig() *Config {
 	cfg := &Config{}
 
-	// 使用命令行参数设置默认值
-	flag.StringVar(&cfg.HTTPSPort, "https-port", getEnv("HTTPS_PORT", ":8443"), "HTTPS server port (e.g. :8443)")
-	flag.StringVar(&cfg.CertFile, "cert-file", getEnv("CERT_FILE", "cert.pem"), "TLS certificate file path")
-	flag.StringVar(&cfg.KeyFile, "key-file", getEnv("KEY_FILE", "key.pem"), "TLS key file path")
-	flag.StringVar(&cfg.Mode, "mode", getEnv("MODE", "normal"), "Operation mode (normal, walkie-talkie). 'walkie-talkie' enforces strict one-way communication and max 2 users.")
-	flag.StringVar(&cfg.Protocol, "protocol", getEnv("PROTOCOL", "webrtc"), "Media transport protocol (ws, webrtc). 'ws' uses WebSocket, 'webrtc' uses WebRTC data channels or audio streams.")
-	flag.StringVar(&cfg.Quality, "quality", getEnv("QUALITY", "lossless"), "Audio quality preset (lossless, high, medium, low). Overrides sample-rate and buffer-size.")
-	flag.IntVar(&cfg.SampleRate, "sample-rate", getEnvAsInt("SAMPLE_RATE", 48000), "Audio sample rate in Hz")
-	flag.IntVar(&cfg.BufferSize, "buffer-size", getEnvAsInt("BUFFER_SIZE", 4096), "Audio buffer size")
+	httpsPort := getEnv("HTTPS_PORT", ":8443")
+	certFile := getEnv("CERT_FILE", "cert.pem")
+	keyFile := getEnv("KEY_FILE", "key.pem")
+	mode := getEnv("MODE", "normal")
+	protocol := getEnv("PROTOCOL", "webrtc")
+	quality := getEnv("QUALITY", "lossless")
+	sampleRate := getEnvAsInt("SAMPLE_RATE", 48000)
+	bufferSize := getEnvAsInt("BUFFER_SIZE", 4096)
+
+	flag.StringVar(&cfg.HTTPSPort, "https-port", httpsPort, "HTTPS server port (alias: -p)")
+	flag.StringVar(&cfg.HTTPSPort, "p", httpsPort, "HTTPS server port")
+	flag.StringVar(&cfg.CertFile, "cert-file", certFile, "TLS certificate file path (alias: -c)")
+	flag.StringVar(&cfg.CertFile, "c", certFile, "TLS certificate file path")
+	flag.StringVar(&cfg.KeyFile, "key-file", keyFile, "TLS key file path (alias: -k)")
+	flag.StringVar(&cfg.KeyFile, "k", keyFile, "TLS key file path")
+	flag.StringVar(&cfg.Mode, "mode", mode, "Operation mode (alias: -m)")
+	flag.StringVar(&cfg.Mode, "m", mode, "Operation mode")
+	flag.StringVar(&cfg.Protocol, "protocol", protocol, "Media transport protocol (alias: -t)")
+	flag.StringVar(&cfg.Protocol, "t", protocol, "Media transport protocol")
+	flag.StringVar(&cfg.Quality, "quality", quality, "Audio quality preset (alias: -q)")
+	flag.StringVar(&cfg.Quality, "q", quality, "Audio quality preset")
+	flag.IntVar(&cfg.SampleRate, "sample-rate", sampleRate, "Audio sample rate in Hz (alias: -s)")
+	flag.IntVar(&cfg.SampleRate, "s", sampleRate, "Audio sample rate in Hz")
+	flag.IntVar(&cfg.BufferSize, "buffer-size", bufferSize, "Audio buffer size (alias: -b)")
+	flag.IntVar(&cfg.BufferSize, "b", bufferSize, "Audio buffer size")
 	
 	flag.Parse()
+	cfg.HTTPSPort = normalizeHTTPSPort(cfg.HTTPSPort)
 
 	// walkie-talkie 模式下强制为无损音质
 	if cfg.Mode == "walkie-talkie" {
@@ -57,6 +75,20 @@ func LoadConfig() *Config {
 	}
 
 	return cfg
+}
+
+func normalizeHTTPSPort(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ":8443"
+	}
+	if strings.HasPrefix(value, ":") {
+		return value
+	}
+	if _, err := strconv.Atoi(value); err == nil {
+		return ":" + value
+	}
+	return value
 }
 
 // getEnv 获取环境变量，如果不存在则返回默认值

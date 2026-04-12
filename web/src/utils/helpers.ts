@@ -9,9 +9,14 @@ export const isSocketOpen = (socket: WebSocket | null): boolean => {
   return socket !== null && socket.readyState === WebSocket.OPEN
 }
 
-export const buildWebSocketUrl = (path: string, roomId: string, clientId: string): string => {
+export const buildWebSocketUrl = (
+  path: string,
+  roomId: string,
+  clientId: string,
+  extraParams: Record<string, string> = {}
+): string => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const params = new URLSearchParams({ room: roomId, client: clientId })
+  const params = new URLSearchParams({ room: roomId, client: clientId, ...extraParams })
   return `${protocol}//${window.location.host}${path}?${params.toString()}`
 }
 
