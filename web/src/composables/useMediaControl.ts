@@ -29,6 +29,8 @@ export function useMediaControl(
   const selectedVideoDeviceId = ref('')
   const mediaChannelReady = ref(false)
   const isRequestingTalk = ref(false)
+  const userVolumes = ref<Record<string, number>>({})
+  let volumeAnimationFrameId: number | null = null
 
   const userCount = computed(() => getCurrentRoomUsers().length)
 
@@ -442,6 +444,9 @@ export function useMediaControl(
         }
         
         audioEngine.syncRemoteAudioElement(remoteAudio).catch(e => console.warn(e))
+        
+        // Setup volume analysis
+        audioEngine.setupAnalyser(id, stream)
       },
       (id) => {
         const audioEl = audioEngine.remoteAudioElements[id]
@@ -449,6 +454,7 @@ export function useMediaControl(
           audioEl.remove()
           delete audioEngine.remoteAudioElements[id]
         }
+        audioEngine.removeAnalyser(id)
         pc.close()
         delete peerConnections[id]
         
@@ -621,6 +627,12 @@ export function useMediaControl(
     
     mediaChannelReady.value = false
     isRequestingTalk.value = false
+    
+    if (volumeAnimationFrameId !== null) {
+      cancelAnimationFrame(volumeAnimationFrameId)
+      volumeAnimationFrameId = null
+    }
+    userVolumes.value = {}
   }
 
   const updatePeerConnectionsOnRoomInfo = (activeIds: string[]) => {
@@ -647,6 +659,42 @@ export function useMediaControl(
   
   const getAudioConfig = () => audioConfig
 
+  const updateVolumes = () => {
+    const volumes: Record<string, number> = {}
+    const clientId = getClientId()
+    
+    if (isCalling.value) {
+      volumes[clientId] = audioEngine.getVolume(audioEngine.localAnalyser)
+    } else {
+      volumes[clientId] = 0
+    }
+
+    getCurrentRoomUsers().forEach(user => {
+      if (user.id === clientId) return
+      
+      if (audioConfig.protocol === 'webrtc') {
+        const analyser = audioEngine.analysers[user.id]
+        if (analyser) {
+          volumes[user.id] = audioEngine.getVolume(analyser)
+        } else {
+          volumes[user.id] = 0
+        }
+      } else {
+        if (user.status === '对讲中') {
+          volumes[user.id] = audioEngine.getVolume(audioEngine.remoteMixAnalyser)
+        } else {
+          volumes[user.id] = 0
+        }
+      }
+    })
+    
+    userVolumes.value = volumes
+    volumeAnimationFrameId = requestAnimationFrame(updateVolumes)
+  }
+
+  // Start the volume tracking loop
+  updateVolumes()
+
   return {
     audioEngine,
     usersWithVideo,
@@ -658,6 +706,7 @@ export function useMediaControl(
     selectedVideoDeviceId,
     mediaChannelReady,
     isRequestingTalk,
+    userVolumes,
     showCallBtn,
     showRequestTalkBtn,
     isCallBtnDisabled,

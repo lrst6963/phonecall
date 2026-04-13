@@ -6,7 +6,12 @@
       class="video-grid-item"
     >
       <div :id="'video_container_' + user.id" class="user-video-container"></div>
-      <div class="video-user-label">{{ formatRoomUserLabel(user) }}</div>
+      <div class="video-user-label">
+        <span class="voice-indicator" v-show="userVolumes[user.id] > 0.05">
+          <span class="voice-bar"></span><span class="voice-bar"></span><span class="voice-bar"></span>
+        </span>
+        {{ formatRoomUserLabel(user) }}
+      </div>
       <button class="video-fullscreen-btn" @click="toggleFullscreen('video_container_' + user.id)" title="全屏">
         <span class="material-symbols-outlined">fullscreen</span>
       </button>
@@ -21,6 +26,7 @@ defineProps<{
   hasAnyVideo: boolean
   usersWithVideo: RoomUser[]
   formatRoomUserLabel: (user: RoomUser) => string
+  userVolumes: Record<string, number>
 }>()
 
 const toggleFullscreen = (containerId: string) => {
@@ -36,3 +42,29 @@ const toggleFullscreen = (containerId: string) => {
   }
 }
 </script>
+
+<style scoped>
+/* 语音发声动画 */
+.voice-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 12px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.voice-bar {
+  width: 2px;
+  background-color: #fff;
+  border-radius: 2px;
+  animation: voice-bounce 0.5s infinite alternate ease-in-out;
+}
+.voice-bar:nth-child(1) { height: 50%; animation-delay: 0s; }
+.voice-bar:nth-child(2) { height: 100%; animation-delay: 0.15s; }
+.voice-bar:nth-child(3) { height: 75%; animation-delay: 0.3s; }
+
+@keyframes voice-bounce {
+  from { transform: scaleY(0.3); }
+  to { transform: scaleY(1); }
+}
+</style>

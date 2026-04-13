@@ -39,6 +39,11 @@ export class AudioEngine {
   public mediaStream: MediaStream | null = null
   public remoteAudioElements: Record<string, HTMLMediaElement> = {}
   
+  public audioVocieSources: Record<string, MediaStreamAudioSourceNode> = {}
+  public analysers: Record<string, AnalyserNode> = {}
+  public localAnalyser: AnalyserNode | null = null
+  public remoteMixAnalyser: AnalyserNode | null = null
+  
   private audioWorkletsReadyPromise: Promise<void> | null = null
   private isMuted: boolean = false
   public logMsg: (msg: string) => void
@@ -66,9 +71,60 @@ export class AudioEngine {
     if (!this.outputGainNode) {
       this.outputGainNode = this.context.createGain()
       this.outputGainNode.connect(this.context.destination)
+      
+      this.remoteMixAnalyser = this.context.createAnalyser()
+      this.remoteMixAnalyser.fftSize = 256
+      this.outputGainNode.connect(this.remoteMixAnalyser)
     }
     this.outputGainNode.gain.value = this.isMuted ? 0 : 1
     return this.outputGainNode
+  }
+
+  setupAnalyser(id: string, stream: MediaStream) {
+    if (!this.context) return null
+    try {
+      if (this.analysers[id]) this.removeAnalyser(id)
+      const analyser = this.context.createAnalyser()
+      analyser.fftSize = 256
+      
+      let hasAudio = false;
+      stream.getAudioTracks().forEach(t => {
+        if (t.readyState === 'live') hasAudio = true;
+      });
+      if (!hasAudio) return null;
+
+      const source = this.context.createMediaStreamSource(stream)
+      source.connect(analyser) // Only connect to analyser, not destination
+      this.analysers[id] = analyser
+      this.audioVocieSources[id] = source
+      return analyser
+    } catch (e) {
+      console.warn("Failed to setup analyser for " + id, e)
+      return null
+    }
+  }
+
+  removeAnalyser(id: string) {
+    if (this.analysers[id]) {
+      this.analysers[id].disconnect()
+      delete this.analysers[id]
+    }
+    if (this.audioVocieSources[id]) {
+      this.audioVocieSources[id].disconnect()
+      delete this.audioVocieSources[id]
+    }
+  }
+
+  getVolume(analyser: AnalyserNode | null): number {
+    if (!analyser) return 0
+    const dataArray = new Uint8Array(analyser.frequencyBinCount)
+    analyser.getByteFrequencyData(dataArray)
+    let sum = 0
+    for (let i = 0; i < dataArray.length; i++) {
+        sum += dataArray[i]
+    }
+    const average = sum / dataArray.length
+    return Math.min(1, average / 128) // Normalize to roughly 0-1
   }
 
   async syncRemoteAudioElement(audioEl: HTMLMediaElement, onBlocked?: () => void) {
@@ -267,6 +323,12 @@ export class AudioEngine {
 
     if (config.audio !== false) {
       this.audioInput = this.context.createMediaStreamSource(this.mediaStream)
+      
+      // 设置本地分析器
+      this.localAnalyser = this.context.createAnalyser()
+      this.localAnalyser.fftSize = 256
+      this.audioInput.connect(this.localAnalyser)
+
       const outputNode = this.ensureOutputGainReady()
       
       if (!this.captureMonitorGainNode) {
@@ -299,6 +361,10 @@ export class AudioEngine {
       this.audioInput.disconnect()
       this.audioInput = null
     }
+    if (this.localAnalyser) {
+      this.localAnalyser.disconnect()
+      this.localAnalyser = null
+    }
     if (this.captureWorkletNode) {
       this.captureWorkletNode.port.onmessage = null
       this.captureWorkletNode.disconnect()
@@ -328,6 +394,9 @@ export class AudioEngine {
     this.captureMonitorGainNode = null
     this.captureWorkletNode = null
     this.playbackWorkletNode = null
+    this.remoteMixAnalyser = null
+    this.localAnalyser = null
+    Object.keys(this.analysers).forEach(id => this.removeAnalyser(id))
     this.audioWorkletsReadyPromise = null
     
     Object.keys(this.remoteAudioElements).forEach(peerId => {

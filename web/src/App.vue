@@ -37,6 +37,7 @@
           :requestTalkBtnText="requestTalkBtnText"
           @editDisplayName="editDisplayName"
           @update:selectedVideoDeviceId="selectedVideoDeviceId = $event"
+          :userVolumes="userVolumes"
           @changeVideoDevice="changeVideoDevice"
           @toggleVideo="toggleVideo"
           @toggleMute="toggleMute"
@@ -49,6 +50,7 @@
             :hasAnyVideo="hasAnyVideo"
             :usersWithVideo="usersWithVideo"
             :formatRoomUserLabel="formatRoomUserLabel"
+            :userVolumes="userVolumes"
           />
           
           <RoomChat
@@ -145,6 +147,7 @@ const {
   callBtnText,
   isRequestTalkBtnDisabled,
   requestTalkBtnText,
+  userVolumes,
   
   audioEngine,
   setAudioConfig,

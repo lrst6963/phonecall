@@ -38,7 +38,12 @@
                   @click="user.id === clientId && $emit('editDisplayName')"
                   @keydown.enter="user.id === clientId && $emit('editDisplayName')"
                 >
-                  <span class="ip-item-address">{{ formatRoomUserLabel(user) }}</span>
+                  <span class="ip-item-address">
+                    <span class="voice-indicator" v-show="userVolumes[user.id] > 0.05">
+                      <span class="voice-bar"></span><span class="voice-bar"></span><span class="voice-bar"></span>
+                    </span>
+                    {{ formatRoomUserLabel(user) }}
+                  </span>
                   <span class="ip-item-status" :class="getStatusColorClass(user.status)">
                     ({{ user.status }})
                   </span>
@@ -128,7 +133,12 @@
             @click="user.id === clientId && $emit('editDisplayName')"
             @keydown.enter="user.id === clientId && $emit('editDisplayName')"
           >
-            <span class="ip-item-address">{{ formatRoomUserLabel(user) }}</span>
+            <span class="ip-item-address">
+              <span class="voice-indicator" v-show="userVolumes[user.id] > 0.05">
+                <span class="voice-bar"></span><span class="voice-bar"></span><span class="voice-bar"></span>
+              </span>
+              {{ formatRoomUserLabel(user) }}
+            </span>
             <span class="ip-item-status" :class="getStatusColorClass(user.status)">
               ({{ user.status }})
             </span>
@@ -232,6 +242,7 @@ defineProps<{
   isRequestTalkBtnDisabled: boolean
   isRequestingTalk: boolean
   requestTalkBtnText: string
+  userVolumes: Record<string, number>
 }>()
 
 defineEmits<{
@@ -350,5 +361,29 @@ defineEmits<{
   .drawer-leave-to .mobile-drawer {
     transform: translateY(100%);
   }
+}
+
+/* 语音发声动画 */
+.voice-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.voice-bar {
+  width: 3px;
+  background-color: var(--md-sys-color-primary);
+  border-radius: 2px;
+  animation: voice-bounce 0.5s infinite alternate ease-in-out;
+}
+.voice-bar:nth-child(1) { height: 50%; animation-delay: 0s; }
+.voice-bar:nth-child(2) { height: 100%; animation-delay: 0.15s; }
+.voice-bar:nth-child(3) { height: 75%; animation-delay: 0.3s; }
+
+@keyframes voice-bounce {
+  from { transform: scaleY(0.3); }
+  to { transform: scaleY(1); }
 }
 </style>
