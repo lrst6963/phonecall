@@ -464,6 +464,8 @@ onBeforeUnmount(() => {
   border-top-right-radius: 12px;
   justify-content: center;
   align-items: center;
+  max-height: 40vh;
+  overflow-y: auto;
 }
 .video-grid-item {
   width: 100%;
@@ -547,6 +549,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 .video-grid + .chat-container {
   border-top-left-radius: 0;
@@ -837,5 +840,36 @@ onBeforeUnmount(() => {
 }
 .ip-item:last-child {
   border-bottom: none;
+}
+
+/* 移动端聊天区优化 */
+@media (max-width: 800px) {
+  .chat-container {
+    border-radius: 0;
+  }
+
+  .chat-messages {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .chat-message {
+    max-width: 85%;
+  }
+
+  .chat-input-area {
+    border-radius: 0;
+    padding: 6px 4px;
+  }
+
+  .chat-pending-images {
+    padding: 8px 8px 0;
+  }
+
+  .video-grid {
+    padding: 8px;
+    gap: 8px;
+    border-radius: 0;
+  }
 }
 </style>

@@ -91,9 +91,14 @@
   }
 }
 
-body {
+html, body {
   margin: 0;
   padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
   background-color: var(--md-sys-color-background);
   color: var(--md-sys-color-on-background);
   font-family: Roboto, system-ui, -apple-system, sans-serif;
@@ -102,16 +107,21 @@ body {
 
 .app-wrapper {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   background: var(--md-sys-color-surface-variant);
   justify-content: center;
   align-items: center;
   box-sizing: border-box;
   padding: 24px;
+  overflow: auto;
 }
 
 .app-wrapper.in-room {
   padding: 0;
+  overflow: hidden;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .card-container {
@@ -130,11 +140,13 @@ body {
   max-width: 100%;
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  border-radius: 0; /* 全屏模式移除圆角 */
-  box-shadow: none; /* 全屏模式移除阴影 */
+  border-radius: 0;
+  box-shadow: none;
   padding: 24px;
+  overflow: hidden;
 }
 
 .room-content {
@@ -152,6 +164,7 @@ body {
   flex-direction: column;
   min-height: 0;
   order: 1;
+  overflow: hidden;
 }
 
 .room-chat {
@@ -206,39 +219,61 @@ body {
 }
 
 @media (max-width: 800px) {
+  .room-container {
+    padding: 0;
+    padding-top: env(safe-area-inset-top);
+  }
+
   .room-content {
     flex-direction: column;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
   }
-  
+
   .room-sidebar {
     max-width: none;
-    order: 1; /* 移动端：通话控制在最上 */
+    min-width: 0;
+    flex: 0 0 auto;
+    order: 2;
   }
 
   .room-chat {
     max-width: none;
-    order: 2; /* 移动端：聊天区居中 */
+    order: 1;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .header-flex {
+    padding: 8px 16px;
+    margin-bottom: 0;
+  }
+
+  .header-flex h1 {
+    font-size: 20px;
   }
 
   .room-logs-popup {
-    top: 64px;
-    right: 16px;
-    width: calc(100vw - 32px);
-    max-height: calc(100vh - 80px);
+    top: 52px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-height: calc(100dvh - 64px);
   }
 }
 
 @media (max-width: 600px) {
   .app-wrapper {
-    padding: 0; /* 移动端去掉外边距 */
-    align-items: stretch; /* 移动端上下拉伸 */
+    padding: 0;
+    align-items: stretch;
   }
 
   .card-container {
-    border-radius: 0; /* 移动端去掉圆角，更加沉浸 */
-    box-shadow: none; /* 移动端去掉阴影 */
-    max-width: none; /* 移动端不限制最大宽度 */
-    padding: 16px; /* 移动端适当减小内边距 */
+    border-radius: 0;
+    box-shadow: none;
+    max-width: none;
+    padding: 16px;
     display: flex;
     flex-direction: column;
   }
