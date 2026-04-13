@@ -23,6 +23,8 @@
         :remoteVolume="remoteVolume"
         :qqNumber="qqNumber"
         :theme="theme"
+        :colorTheme="colorTheme"
+        @update:colorTheme="colorTheme = $event"
         @update:theme="theme = $event"
         @update:qqNumber="updateQQNumber"
         @update:selectedVideoDeviceId="selectedVideoDeviceId = $event"
@@ -154,6 +156,18 @@ watch(theme, (newTheme) => {
     document.documentElement.classList.remove('dark')
   } else {
     document.documentElement.classList.remove('dark', 'light')
+  }
+}, { immediate: true })
+
+// 颜色主题设置
+const colorTheme = ref(localStorage.getItem('phonecall_colorTheme') || 'default')
+watch(colorTheme, (newColor, oldColor) => {
+  localStorage.setItem('phonecall_colorTheme', newColor)
+  if (oldColor && oldColor !== 'default') {
+    document.documentElement.classList.remove(`color-${oldColor}`)
+  }
+  if (newColor !== 'default') {
+    document.documentElement.classList.add(`color-${newColor}`)
   }
 }, { immediate: true })
 

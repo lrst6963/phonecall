@@ -17,7 +17,149 @@
   --theme-on-secondary-dark: #1d3530;
   --theme-secondary-container-dark: #334b46;
   --theme-on-secondary-container-dark: #cde8e1;
+}
 
+:root.color-wechat {
+  --theme-primary-light: #07c160;
+  --theme-on-primary-light: #ffffff;
+  --theme-primary-container-light: #d4f7e6;
+  --theme-on-primary-container-light: #02361b;
+  --theme-secondary-light: #4c6356;
+  --theme-on-secondary-light: #ffffff;
+  --theme-secondary-container-light: #cee9d8;
+  --theme-on-secondary-container-light: #082015;
+
+  --theme-primary-dark: #50e38d;
+  --theme-on-primary-dark: #003919;
+  --theme-primary-container-dark: #035227;
+  --theme-on-primary-container-dark: #d4f7e6;
+  --theme-secondary-dark: #b2ccbd;
+  --theme-on-secondary-dark: #1e3529;
+  --theme-secondary-container-dark: #354b3f;
+  --theme-on-secondary-container-dark: #cee9d8;
+}
+
+:root.color-qq {
+  --theme-primary-light: #0088cc;
+  --theme-on-primary-light: #ffffff;
+  --theme-primary-container-light: #cce8ff;
+  --theme-on-primary-container-light: #00263d;
+  --theme-secondary-light: #52606b;
+  --theme-on-secondary-light: #ffffff;
+  --theme-secondary-container-light: #d5e4f2;
+  --theme-on-secondary-container-light: #0e1d27;
+
+  --theme-primary-dark: #66bfff;
+  --theme-on-primary-dark: #003352;
+  --theme-primary-container-dark: #004d7a;
+  --theme-on-primary-container-dark: #cce8ff;
+  --theme-secondary-dark: #b9c8d5;
+  --theme-on-secondary-dark: #24323c;
+  --theme-secondary-container-dark: #3b4853;
+  --theme-on-secondary-container-dark: #d5e4f2;
+}
+
+:root.color-netease {
+  --theme-primary-light: #C00013;
+  --theme-on-primary-light: #FFFFFF;
+  --theme-primary-container-light: #FFDAD6;
+  --theme-on-primary-container-light: #410002;
+  --theme-secondary-light: #775653;
+  --theme-on-secondary-light: #FFFFFF;
+  --theme-secondary-container-light: #FFDAD6;
+  --theme-on-secondary-container-light: #2C1513;
+
+  --theme-primary-dark: #FFB4AB;
+  --theme-on-primary-dark: #690005;
+  --theme-primary-container-dark: #93000B;
+  --theme-on-primary-container-dark: #FFDAD6;
+  --theme-secondary-dark: #E7BDB8;
+  --theme-on-secondary-dark: #442927;
+  --theme-secondary-container-dark: #5D3F3D;
+  --theme-on-secondary-container-dark: #FFDAD6;
+}
+
+:root.color-weibo {
+  --theme-primary-light: #9B4400;
+  --theme-on-primary-light: #FFFFFF;
+  --theme-primary-container-light: #FFDBCC;
+  --theme-on-primary-container-light: #341100;
+  --theme-secondary-light: #765749;
+  --theme-on-secondary-light: #FFFFFF;
+  --theme-secondary-container-light: #FFDBCC;
+  --theme-on-secondary-container-light: #2C160B;
+
+  --theme-primary-dark: #FFB691;
+  --theme-on-primary-dark: #542200;
+  --theme-primary-container-dark: #773300;
+  --theme-on-primary-container-dark: #FFDBCC;
+  --theme-secondary-dark: #E6BEAC;
+  --theme-on-secondary-dark: #432A1E;
+  --theme-secondary-container-dark: #5C4033;
+  --theme-on-secondary-container-dark: #FFDBCC;
+}
+
+:root.color-bilibili {
+  --theme-primary-light: #AC3264;
+  --theme-on-primary-light: #FFFFFF;
+  --theme-primary-container-light: #FFD9E2;
+  --theme-on-primary-container-light: #3E001D;
+  --theme-secondary-light: #74565F;
+  --theme-on-secondary-light: #FFFFFF;
+  --theme-secondary-container-light: #FFD9E2;
+  --theme-on-secondary-container-light: #2B151C;
+
+  --theme-primary-dark: #FFB1C8;
+  --theme-on-primary-dark: #650033;
+  --theme-primary-container-dark: #8E164C;
+  --theme-on-primary-container-dark: #FFD9E2;
+  --theme-secondary-dark: #E3BDC7;
+  --theme-on-secondary-dark: #422931;
+  --theme-secondary-container-dark: #5A3F47;
+  --theme-on-secondary-container-dark: #FFD9E2;
+}
+
+:root.color-purple {
+  --theme-primary-light: #6750A4;
+  --theme-on-primary-light: #FFFFFF;
+  --theme-primary-container-light: #EADDFF;
+  --theme-on-primary-container-light: #21005D;
+  --theme-secondary-light: #625B71;
+  --theme-on-secondary-light: #FFFFFF;
+  --theme-secondary-container-light: #E8DEF8;
+  --theme-on-secondary-container-light: #1D192B;
+
+  --theme-primary-dark: #D0BCFF;
+  --theme-on-primary-dark: #381E72;
+  --theme-primary-container-dark: #4F378B;
+  --theme-on-primary-container-dark: #EADDFF;
+  --theme-secondary-dark: #CCC2DC;
+  --theme-on-secondary-dark: #332D41;
+  --theme-secondary-container-dark: #4A4458;
+  --theme-on-secondary-container-dark: #E8DEF8;
+}
+
+:root.color-cyan {
+  --theme-primary-light: #006874;
+  --theme-on-primary-light: #FFFFFF;
+  --theme-primary-container-light: #97F0FF;
+  --theme-on-primary-container-light: #001F24;
+  --theme-secondary-light: #4A6267;
+  --theme-on-secondary-light: #FFFFFF;
+  --theme-secondary-container-light: #CDE7EC;
+  --theme-on-secondary-container-light: #051F23;
+
+  --theme-primary-dark: #4FD8EB;
+  --theme-on-primary-dark: #00363D;
+  --theme-primary-container-dark: #004F58;
+  --theme-on-primary-container-dark: #97F0FF;
+  --theme-secondary-dark: #B1CBD0;
+  --theme-on-secondary-dark: #1C3438;
+  --theme-secondary-container-dark: #334A4F;
+  --theme-on-secondary-container-dark: #CDE7EC;
+}
+
+:root, :root.light {
   --md-sys-color-primary: var(--theme-primary-light);
   --md-sys-color-on-primary: var(--theme-on-primary-light);
   --md-sys-color-primary-container: var(--theme-primary-container-light);

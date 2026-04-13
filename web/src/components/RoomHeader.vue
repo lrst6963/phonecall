@@ -63,7 +63,7 @@
         ></md-outlined-text-field>
       </div>
 
-      <!-- 主题设置 -->
+      <!-- 主题模式设置 -->
       <div class="setting-item" style="margin-top: 8px;">
         <md-filled-select label="主题模式" :value="theme" @change="$emit('update:theme', ($event.target as HTMLSelectElement).value)">
           <md-select-option value="system">
@@ -74,6 +74,36 @@
           </md-select-option>
           <md-select-option value="dark">
             <div slot="headline">深色模式</div>
+          </md-select-option>
+        </md-filled-select>
+      </div>
+
+      <!-- 主题颜色设置 -->
+      <div class="setting-item" style="margin-top: 8px;">
+        <md-filled-select label="主题颜色" :value="colorTheme" @change="$emit('update:colorTheme', ($event.target as HTMLSelectElement).value)">
+          <md-select-option value="default">
+            <div slot="headline">默认 (翡翠绿)</div>
+          </md-select-option>
+          <md-select-option value="wechat">
+            <div slot="headline">微信绿</div>
+          </md-select-option>
+          <md-select-option value="qq">
+            <div slot="headline">QQ蓝</div>
+          </md-select-option>
+          <md-select-option value="netease">
+            <div slot="headline">网易红</div>
+          </md-select-option>
+          <md-select-option value="weibo">
+            <div slot="headline">微博橙</div>
+          </md-select-option>
+          <md-select-option value="bilibili">
+            <div slot="headline">B站粉</div>
+          </md-select-option>
+          <md-select-option value="purple">
+            <div slot="headline">紫罗兰</div>
+          </md-select-option>
+          <md-select-option value="cyan">
+            <div slot="headline">青黛蓝</div>
           </md-select-option>
         </md-filled-select>
       </div>
@@ -150,6 +180,7 @@ defineProps<{
   remoteVolume: number
   qqNumber: string
   theme: string
+  colorTheme: string
 }>()
 defineEmits<{
   (e: 'toggleLogs'): void
@@ -157,6 +188,7 @@ defineEmits<{
   (e: 'updateNoiseSuppression', value: boolean): void
   (e: 'update:qqNumber', value: string): void
   (e: 'update:theme', value: string): void
+  (e: 'update:colorTheme', value: string): void
   (e: 'update:selectedVideoDeviceId', value: string): void
   (e: 'update:selectedAudioDeviceId', value: string): void
   (e: 'update:selectedAudioOutputDeviceId', value: string): void
