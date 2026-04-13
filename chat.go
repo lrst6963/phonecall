@@ -22,6 +22,7 @@ type ChatMessage struct {
 	SenderID   string `json:"senderId"`
 	SenderIP   string `json:"senderIp"`
 	SenderName string `json:"senderName,omitempty"`
+	SenderAvatar string `json:"senderAvatar,omitempty"`
 	Type       string `json:"type"`    // "text", "image", "file"
 	Content   string `json:"content"` // Text content or file URL path
 	FileName  string `json:"fileName,omitempty"`
@@ -103,16 +104,16 @@ func getChatHistory(roomID string) []ChatMessage {
 	return messages
 }
 
-func getSenderInfo(roomID, senderID string) (ip string, name string) {
+func getSenderInfo(roomID, senderID string) (ip string, name string, avatar string) {
 	roomsMutex.Lock()
 	defer roomsMutex.Unlock()
 
 	if cmap, ok := rooms[roomID]; ok {
 		if c, ok := cmap[senderID]; ok {
-			return c.ip, c.name
+			return c.ip, c.name, c.avatar
 		}
 	}
-	return "", ""
+	return "", "", ""
 }
 
 func saveUploadedFile(file io.Reader, filename string) (string, error) {
@@ -350,7 +351,7 @@ func handleFileUploadAPI(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error saving file", http.StatusInternalServerError)
 		return
 	}
-	senderIP, senderName := getSenderInfo(roomID, senderID)
+	senderIP, senderName, senderAvatar := getSenderInfo(roomID, senderID)
 
 	// 创建聊天消息记录
 	msg := ChatMessage{
@@ -359,6 +360,7 @@ func handleFileUploadAPI(w http.ResponseWriter, r *http.Request) {
 		SenderID:   senderID,
 		SenderIP:   senderIP,
 		SenderName: senderName,
+		SenderAvatar: senderAvatar,
 		Type:       fileType,
 		Content:    "/api/download/" + safeFilename,
 		FileName:   header.Filename,
@@ -440,13 +442,15 @@ func handleBatchImageUploadAPI(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	senderIP, senderName := getSenderInfo(roomID, senderID)
+	senderIP, senderName, senderAvatar := getSenderInfo(roomID, senderID)
+
 	msg := ChatMessage{
 		ID:         fmt.Sprintf("%d", time.Now().UnixNano()),
 		RoomID:     roomID,
 		SenderID:   senderID,
 		SenderIP:   senderIP,
 		SenderName: senderName,
+		SenderAvatar: senderAvatar,
 		Type:       "image_group",
 		Images:     images,
 		Timestamp:  time.Now().UnixMilli(),

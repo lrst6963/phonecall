@@ -21,6 +21,8 @@
         :selectedAudioOutputDeviceId="selectedAudioOutputDeviceId"
         :localVolume="localVolume"
         :remoteVolume="remoteVolume"
+        :qqNumber="qqNumber"
+        @update:qqNumber="updateQQNumber"
         @update:selectedVideoDeviceId="selectedVideoDeviceId = $event"
         @update:selectedAudioDeviceId="selectedAudioDeviceId = $event"
         @update:selectedAudioOutputDeviceId="selectedAudioOutputDeviceId = $event"
@@ -146,6 +148,9 @@ let clientId = ''
 let currentRoomId = ''
 let isCleaningUp = false
 const displayName = ref(normalizeDisplayName(localStorage.getItem('phonecall_displayName') || ''))
+const qqNumber = ref(localStorage.getItem('phonecall_qqNumber') || '')
+
+const getAvatarUrl = (qq: string) => qq.trim() ? `http://q2.qlogo.cn/headimg_dl?dst_uin=${qq.trim()}&spec=5` : ''
 
 const {
   usersWithVideo,
@@ -271,6 +276,19 @@ const editDisplayName = () => {
   }
 }
 
+const updateQQNumber = (qq: string) => {
+  const normalizedQQ = qq.trim()
+  qqNumber.value = normalizedQQ
+  localStorage.setItem('phonecall_qqNumber', normalizedQQ)
+
+  if (isSocketOpen(controlWs)) {
+    controlWs!.send(JSON.stringify({
+      type: 'update_avatar',
+      avatar: getAvatarUrl(normalizedQQ)
+    }))
+  }
+}
+
 const getStatusColorClass = (status: string) => {
   if (status === '就绪') return 'ip-status-ok'
   if (status === '麦克风无权限') return 'ip-status-warn'
@@ -326,7 +344,10 @@ const joinRoom = async () => {
 }
 
 const connectControlChannel = (roomId: string) => {
-  controlWs = new WebSocket(buildWebSocketUrl('/ws/control', roomId, clientId, { name: displayName.value }))
+  controlWs = new WebSocket(buildWebSocketUrl('/ws/control', roomId, clientId, { 
+    name: displayName.value,
+    avatar: getAvatarUrl(qqNumber.value)
+  }))
 
   controlWs.onopen = () => {
     logMsg('控制通道已连接')

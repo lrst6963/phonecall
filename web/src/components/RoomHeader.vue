@@ -52,7 +52,18 @@
         </md-filled-select>
       </div>
 
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; margin-top: 16px; gap: 24px;">
+      <!-- QQ头像同步 -->
+      <div class="setting-item" style="margin-top: 8px;">
+        <md-outlined-text-field
+          label="同步QQ头像"
+          type="number"
+          supporting-text="输入QQ号以显示头像，不填则不使用"
+          :value="qqNumber"
+          @change="$emit('update:qqNumber', ($event.target as HTMLInputElement).value)"
+        ></md-outlined-text-field>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; margin-top: 8px; gap: 24px;">
         <span>麦克风降噪</span>
         <md-switch
           :selected="noiseSuppression"
@@ -116,11 +127,13 @@ defineProps<{
   selectedAudioOutputDeviceId: string
   localVolume: number
   remoteVolume: number
+  qqNumber: string
 }>()
 defineEmits<{
   (e: 'toggleLogs'): void
   (e: 'leaveRoom'): void
   (e: 'updateNoiseSuppression', value: boolean): void
+  (e: 'update:qqNumber', value: string): void
   (e: 'update:selectedVideoDeviceId', value: string): void
   (e: 'update:selectedAudioDeviceId', value: string): void
   (e: 'update:selectedAudioOutputDeviceId', value: string): void

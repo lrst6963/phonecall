@@ -16,6 +16,7 @@
         @touchcancel="cancelMessageLongPress"
       >
         <div class="chat-message-header">
+          <img v-if="msg.senderAvatar" :src="msg.senderAvatar" class="user-avatar-small" alt="" />
           <span class="chat-sender">{{ getSenderDisplayName(msg) }}</span>
           <span class="chat-time">{{ new Date(msg.timestamp).toLocaleTimeString() }}</span>
         </div>

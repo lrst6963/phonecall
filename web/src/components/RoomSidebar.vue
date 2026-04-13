@@ -39,6 +39,7 @@
                   @keydown.enter="user.id === clientId && $emit('editDisplayName')"
                 >
                   <span class="ip-item-address">
+                    <img v-if="user.avatar" :src="user.avatar" class="user-avatar-small" alt="" />
                     <span class="voice-indicator" v-show="userVolumes[user.id] > 0.05">
                       <span class="voice-bar"></span><span class="voice-bar"></span><span class="voice-bar"></span>
                     </span>
@@ -134,6 +135,7 @@
             @keydown.enter="user.id === clientId && $emit('editDisplayName')"
           >
             <span class="ip-item-address">
+              <img v-if="user.avatar" :src="user.avatar" class="user-avatar-small" alt="" />
               <span class="voice-indicator" v-show="userVolumes[user.id] > 0.05">
                 <span class="voice-bar"></span><span class="voice-bar"></span><span class="voice-bar"></span>
               </span>

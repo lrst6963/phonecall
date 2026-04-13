@@ -2,6 +2,7 @@ export type RoomUser = {
   id: string
   ip: string
   name?: string
+  avatar?: string
   status: string
   video?: boolean
 }
@@ -12,6 +13,7 @@ export type ChatMessage = {
   senderId: string
   senderIp?: string
   senderName?: string
+  senderAvatar?: string
   type: string
   content: string
   fileName?: string

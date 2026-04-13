@@ -7,6 +7,7 @@
     >
       <div :id="'video_container_' + user.id" class="user-video-container"></div>
       <div class="video-user-label">
+        <img v-if="user.avatar" :src="user.avatar" class="user-avatar-small" alt="" />
         <span class="voice-indicator" v-show="userVolumes[user.id] > 0.05">
           <span class="voice-bar"></span><span class="voice-bar"></span><span class="voice-bar"></span>
         </span>

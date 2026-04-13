@@ -28,6 +28,7 @@ type Client struct {
 	id          string
 	ip          string
 	name        string
+	avatar      string
 	status      string
 	hasVideo    bool
 	controlConn *websocket.Conn
@@ -48,6 +49,7 @@ type UserInfo struct {
 	ID     string `json:"id"`
 	IP     string `json:"ip"`
 	Name   string `json:"name"`
+	Avatar string `json:"avatar"`
 	Status string `json:"status"`
 	Video  bool   `json:"video"`
 }
@@ -78,6 +80,7 @@ func broadcastRoomInfo(roomID string) {
 			ID:     c.id,
 			IP:     c.ip,
 			Name:   c.name,
+			Avatar: c.avatar,
 			Status: c.status,
 			Video:  c.hasVideo,
 		})
@@ -147,7 +150,7 @@ func countActiveClients(clientsMap map[string]*Client) int {
 	return count
 }
 
-func registerControlClient(roomID, clientID, ip, name string, conn *websocket.Conn) (*Client, *websocket.Conn, *websocket.Conn, bool) {
+func registerControlClient(roomID, clientID, ip, name, avatar string, conn *websocket.Conn) (*Client, *websocket.Conn, *websocket.Conn, bool) {
 	var oldControlConn *websocket.Conn
 	var oldMediaConn *websocket.Conn
 	normalizedName := normalizeClientName(name)
@@ -163,7 +166,7 @@ func registerControlClient(roomID, clientID, ip, name string, conn *websocket.Co
 			roomsMutex.Unlock()
 			return nil, nil, nil, false
 		}
-		client = &Client{id: clientID, ip: ip, name: normalizedName, status: "就绪", hasVideo: false}
+		client = &Client{id: clientID, ip: ip, name: normalizedName, avatar: avatar, status: "就绪", hasVideo: false}
 		rooms[roomID][clientID] = client
 	} else {
 		if client.controlConn == nil && appConfig.Mode == "walkie-talkie" && countActiveClients(rooms[roomID]) >= 2 {
@@ -176,6 +179,7 @@ func registerControlClient(roomID, clientID, ip, name string, conn *websocket.Co
 
 	client.ip = ip
 	client.name = normalizedName
+	client.avatar = avatar
 	client.status = "就绪"
 	client.hasVideo = false
 	client.controlConn = conn
@@ -257,6 +261,24 @@ func updateClientName(roomID, clientID, name string) bool {
 	}
 
 	client.name = normalizeClientName(name)
+	return true
+}
+
+func updateClientAvatar(roomID, clientID, avatar string) bool {
+	roomsMutex.Lock()
+	defer roomsMutex.Unlock()
+
+	clientsMap := rooms[roomID]
+	if clientsMap == nil {
+		return false
+	}
+
+	client := clientsMap[clientID]
+	if client == nil || client.controlConn == nil {
+		return false
+	}
+
+	client.avatar = avatar
 	return true
 }
 
@@ -437,7 +459,7 @@ func handleControlConnections(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, oldControlConn, oldMediaConn, ok := registerControlClient(roomID, clientID, getClientIP(r), r.URL.Query().Get("name"), ws)
+	client, oldControlConn, oldMediaConn, ok := registerControlClient(roomID, clientID, getClientIP(r), r.URL.Query().Get("name"), r.URL.Query().Get("avatar"), ws)
 	if !ok {
 		_ = ws.WriteMessage(websocket.TextMessage, []byte(`{"type":"error","message":"对讲机模式频道人数已达上限(2人)"}`))
 		_ = ws.Close()
@@ -490,6 +512,13 @@ func handleControlConnections(w http.ResponseWriter, r *http.Request) {
 			if err := json.Unmarshal(p, &nameMsgData); err == nil && updateClientName(roomID, clientID, nameMsgData.Name) {
 				broadcastRoomInfo(roomID)
 			}
+		case "update_avatar":
+			var avatarMsgData struct {
+				Avatar string `json:"avatar"`
+			}
+			if err := json.Unmarshal(p, &avatarMsgData); err == nil && updateClientAvatar(roomID, clientID, avatarMsgData.Avatar) {
+				broadcastRoomInfo(roomID)
+			}
 		case "request_talk", "approve_talk":
 			forwardControlSignal(roomID, client.id, msgData.Type)
 		case "webrtc_offer", "webrtc_answer", "webrtc_candidate":
@@ -509,6 +538,7 @@ func handleControlConnections(w http.ResponseWriter, r *http.Request) {
 					SenderID:   clientID,
 					SenderIP:   client.ip,
 					SenderName: client.name,
+					SenderAvatar: client.avatar,
 					Type:       "text",
 					Content:    chatMsgData.Content,
 					Timestamp:  time.Now().UnixMilli(),
