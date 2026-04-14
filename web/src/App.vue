@@ -167,11 +167,11 @@ const isInRoom = ref(false)
 const isConnecting = ref(false)
 const currentTime = ref(Date.now())
 let timeInterval: number | null = null
+let serverTimeOffset = 0
 
 onMounted(() => {
   timeInterval = window.setInterval(() => {
-    // 收到 serverTime 后，我们让 currentTime.value 自增 1 秒，从而维持和服务器的倒计时一致
-    currentTime.value += 1000
+    currentTime.value = Date.now() + serverTimeOffset
   }, 1000)
 })
 
@@ -708,7 +708,7 @@ const connectMediaChannel = (roomId: string) => {
 
 const updateRoomInfo = (data: any) => {
   if (data.serverTime) {
-    // 收到 room_info 时，同步客户端时间，避免与服务端时间出现偏差导致倒计时不准
+    serverTimeOffset = data.serverTime - Date.now()
     currentTime.value = data.serverTime
   }
   currentRoomUsers.value = Array.isArray(data.users) ? data.users : []
