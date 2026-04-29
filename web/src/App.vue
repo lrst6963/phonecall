@@ -13,6 +13,7 @@
         :userCount="userCount"
         :showLogs="showLogs"
         :noiseSuppression="audioConfig.noiseSuppression ?? false"
+        :echoCancellation="audioConfig.echoCancellation ?? false"
         :videoDevices="videoDevices"
         :audioDevices="audioDevices"
         :audioOutputDevices="audioOutputDevices"
@@ -34,6 +35,7 @@
         @changeAudioDevice="changeAudioDevice"
         @changeAudioOutputDevice="changeAudioOutputDevice"
         @updateNoiseSuppression="toggleNoiseSuppression"
+        @updateEchoCancellation="toggleEchoCancellation"
         @toggleLogs="toggleLogs"
         @leaveRoom="leaveRoom"
       />
@@ -503,6 +505,17 @@ function normalizeDisplayName(name: string) {
 const toggleNoiseSuppression = async (value: boolean) => {
   setAudioConfig({ noiseSuppression: value })
   localStorage.setItem('yurubox_noiseSuppression', value.toString())
+  
+  if (isCalling.value) {
+    // 重新开启麦克风以应用新的设置
+    await toggleCall(false)
+    await toggleCall(true)
+  }
+}
+
+const toggleEchoCancellation = async (value: boolean) => {
+  setAudioConfig({ echoCancellation: value })
+  localStorage.setItem('yurubox_echoCancellation', value.toString())
   
   if (isCalling.value) {
     // 重新开启麦克风以应用新的设置

@@ -119,6 +119,17 @@
       <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">
         开启降噪可以过滤背景噪音，但可能会降低音质。如果你在安静的环境下，建议关闭降噪以获得更好的音质。
       </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; margin-top: 8px; gap: 24px;">
+        <span>回音消除</span>
+        <md-switch
+          :selected="echoCancellation"
+          @change="$emit('updateEchoCancellation', ($event.target as any).selected)"
+        ></md-switch>
+      </div>
+      <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">
+        开启回音消除可以防止麦克风收到扬声器的声音。如果佩戴耳机，建议关闭以获得更好的音质。
+      </div>
     </div>
     <div slot="actions">
       <md-text-button @click="showSettings = false">关闭</md-text-button>
@@ -171,6 +182,7 @@ const props = defineProps<{
   userCount: number
   showLogs: boolean
   noiseSuppression: boolean
+  echoCancellation: boolean
   videoDevices: MediaDeviceInfo[]
   audioDevices: MediaDeviceInfo[]
   audioOutputDevices: MediaDeviceInfo[]
@@ -193,6 +205,7 @@ defineEmits<{
   (e: 'toggleLogs'): void
   (e: 'leaveRoom'): void
   (e: 'updateNoiseSuppression', value: boolean): void
+  (e: 'updateEchoCancellation', value: boolean): void
   (e: 'update:qqNumber', value: string): void
   (e: 'update:theme', value: string): void
   (e: 'update:colorTheme', value: string): void

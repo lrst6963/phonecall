@@ -17,13 +17,15 @@ export function useMediaControl(
   const audioEngine = new AudioEngine(logMsg)
   
   const savedNoiseSuppression = localStorage.getItem('yurubox_noiseSuppression')
+  const savedEchoCancellation = localStorage.getItem('yurubox_echoCancellation')
   let audioConfig: AudioRuntimeConfig = {
     mode: 'normal',
     quality: 'lossless',
     sampleRate: 48000,
     bufferSize: 4096,
     protocol: 'ws',
-    noiseSuppression: savedNoiseSuppression ? savedNoiseSuppression === 'true' : false
+    noiseSuppression: savedNoiseSuppression ? savedNoiseSuppression === 'true' : false,
+    echoCancellation: savedEchoCancellation ? savedEchoCancellation === 'true' : false
   }
   let peerConnections: Record<string, RTCPeerConnection> = {}
   let audioUnlockBound = false

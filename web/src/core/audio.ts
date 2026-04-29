@@ -10,6 +10,7 @@ export type AudioRuntimeConfig = {
   audioDeviceId?: string
   audioOutputDeviceId?: string
   noiseSuppression?: boolean
+  echoCancellation?: boolean
 }
 
 export type CaptureWorkletMessage = {
@@ -266,7 +267,7 @@ export class AudioEngine {
 
     const constraints: MediaStreamConstraints = {
       audio: config.audio === false ? false : {
-        echoCancellation: !isLossless,
+        echoCancellation: config.echoCancellation ?? !isLossless,
         noiseSuppression: config.noiseSuppression ?? false,
         autoGainControl: false,
         ...(config.audioDeviceId ? { deviceId: { exact: config.audioDeviceId } } : {})
